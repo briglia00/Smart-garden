@@ -1,10 +1,6 @@
 #include "IrrigationManager.h"
 #include "MachineState.h"
 
-#define MOTOR_POS_MIN 545
-#define MOTOR_POS_MAX 2400
-
-
 IrrigationManager::IrrigationManager(MachineState* mstate, int pin){
   this->mstate = mstate;
   this->pin = pin;
@@ -15,6 +11,8 @@ IrrigationManager::IrrigationManager(MachineState* mstate, int pin){
   this->servo = new ServoTimer2();
   this->servo->attach(pin);
   this->servo->write(this->pos);
+  this->currentTime = millis();
+  this->waitTime=0;
 }
 
 void IrrigationManager::init(int period){
@@ -22,24 +20,54 @@ void IrrigationManager::init(int period){
 }
 
 void IrrigationManager::startIrrigation(){
-  this->position = OPEN;
+  if (this->waitTime == 0){
+    this->position = OPEN;
+    noInterrupts();
+    this->currentTime = millis();
+    this->waitTime = SWEEPTIME;
+    interrupts();    
+  }
+  
 }
 void IrrigationManager::stopIrrigation(){
-  this->position = CLOSED;
+  if (this->waitTime == 0){
+    this->position = CLOSED;
+    noInterrupts();
+    this->currentTime = millis();
+    this->waitTime = SLEEPTIME;
+    interrupts();    
+  }
 }
 
 void IrrigationManager::setIrrigationLevel(speed speedlevel){
-  this->speedlevel = speedlevel;
+  if (this->waitTime == 0){
+    this->speedlevel = speedlevel;
+  }
+}
+
+state IrrigationManager::getStatus(){
+  return this->position;
 }
 
 void IrrigationManager::tick(){
-  /* Quando la temperatura/ luce scende sotto un certo valore(prendendolo da machinestate), attivo il sistema di irrigazione.
-  in modalita manuale aspetto messaggi per metterlo in funzione */
   noInterrupts();
   volatile status currentGardenState = mstate->getStatus();
   volatile state tempstatus = this->position;
   interrupts();
-  
+  if (this->waitTime != 0 && millis() > this->currentTime + this->waitTime){
+    if(this->position == OPEN){
+      this->position = CLOSED;
+      noInterrupts();
+      this->currentTime = millis();
+      this->waitTime = SLEEPTIME;
+      interrupts();
+    } else if (this->position == CLOSED){
+      noInterrupts();
+      this->waitTime = 0;
+      this->currentTime = millis();
+      interrupts();
+    }
+  }
   if (currentGardenState != ALARM){
     switch(tempstatus){
       case(OPEN):

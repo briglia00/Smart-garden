@@ -95,7 +95,7 @@ void loop() {
     value++;
 
     /* creating a msg in the buffer */
-    snprintf (msg, MSG_BUFFER_SIZE, "%ld", map(random(100), 0, 100, 0, 40));
+    snprintf (msg, MSG_BUFFER_SIZE, "%ld", map(random(100), 0, 100, 1, 5));
     
     client.publish("garden/temperature", msg);  
 

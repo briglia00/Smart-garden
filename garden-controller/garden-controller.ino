@@ -31,6 +31,7 @@ void setup() {
   sched.addTask(mmanager);
   sched.addTask(irrmanager);
   Serial.begin(9600);
+  Serial.println("READY");
 }
 
 void loop() {
