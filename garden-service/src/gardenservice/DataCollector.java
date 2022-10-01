@@ -1,5 +1,6 @@
 package gardenservice;
 
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -35,55 +36,52 @@ public class DataCollector extends Thread {
 		this.publisher.subscribe(TOPIC_BRIGHTNESS);
 	}
 	public void run() {
+		int light;
+		int temp;
 		while (true){
 			try {
-				Thread.sleep(3000);
-			} catch (InterruptedException e1) {
-				System.out.println("Timer sleep exception");
-			}
-			if (Integer.parseInt(this.brightness) < 5) {
-				try {
-	        		channel.sendMsg("LM12ON");
-	        		channel.sendMsg("LM34LV" + this.brightness);
-	        		System.out.println("LM34LV" + this.brightness);
-	        	} catch (Exception e1) {
-	        		System.out.println("error while sending message to arduino");
-	        	}
-				if (Integer.parseInt(this.brightness) < 2) {
-					channel.sendMsg("STRIRR");
-				}
-			}
-			if (Integer.parseInt(this.temperature) > 35) {
-				channel.sendMsg("STRIRR");
-				channel.sendMsg("LVLIRRH");
-			}
-			if (Integer.parseInt(this.brightness) > 5) {
-				channel.sendMsg("STPIRR");
-			}
-			//System.out.println(this.temperature + " - " + this.brightness);
-			/*try {
-        		channel.sendMsg("RECOVR");
-        	} catch (Exception e1) {
-        		
-        	}*/
-			
-			
-			
-			/*try {
-				this.publisher.subscribe("temperature/temperature", (topic, msg) -> {
-				    byte[] payload = msg.getPayload();
-				    System.out.println(payload);
-				    // ... payload handling omitted
-				});
+				Thread.sleep(8000);
+				light = Integer.parseInt(this.brightness);
+				temp = Integer.parseInt(this.temperature);
 				
-			} catch (MqttException e) {
-				System.out.println("Client non connesso");
+				if (light < 5) {
+		        	channel.sendMsg("LM12ON"); Thread.sleep(500);
+		        	channel.sendMsg("LM34LV" + Integer.toString(light));
+					if (light < 2) {
+						Thread.sleep(500);
+						channel.sendMsg("STRIRR");
+					}
+				} else if (light >= 5) {
+					Thread.sleep(500);
+					channel.sendMsg("LM12OF"); Thread.sleep(500);
+	        		channel.sendMsg("LM34LV0");
+				}
+				if (temp == 3) {
+					Thread.sleep(500);
+					channel.sendMsg("LVLIRRL"); Thread.sleep(500);
+					channel.sendMsg("STRIRR");
+				} else if (temp == 4) {
+					Thread.sleep(500);
+					channel.sendMsg("LVLIRRM"); Thread.sleep(500);
+					channel.sendMsg("STRIRR"); 
+				} else if (temp == 5) {
+					Thread.sleep(500);
+					channel.sendMsg("LVLIRRH"); Thread.sleep(500);
+					channel.sendMsg("STRIRR");
+				} else if (temp == 6) {
+					Thread.sleep(500);
+					channel.sendMsg("GETIRR");
+					String msg = channel.receiveMsg();
+					if(msg.equals("1")) {
+						Thread.sleep(500); channel.sendMsg("SETALM");
+					}
+				}
+				System.out.println("temp: " + temp + " - light: " + light);
+			} catch (NumberFormatException e1) {
+        		System.out.println("Unreadable value");
+        	} catch (InterruptedException e) {
+        		System.out.println("Timer sleep exception");
 			}
-			try {
-				Thread.sleep(5000);
-			} catch (InterruptedException e1) {
-				System.out.println("Timer sleep exception");
-			}*/
 		}
 	}
 	

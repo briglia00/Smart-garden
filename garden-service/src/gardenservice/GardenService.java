@@ -1,7 +1,5 @@
 package gardenservice;
 
-
-import java.awt.Color;
 import java.awt.GridLayout;
 import java.awt.event.ActionListener;
 
@@ -163,8 +161,8 @@ public class GardenService extends JFrame {
     }
     
     public static void main(String[] args) throws Exception {
-    	//SerialCommChannel channel = new SerialCommChannel("/dev/ttyACM0",9600);
-    	DataCollector collector = new DataCollector(new SerialCommChannel("/dev/ttyACM0",9600));
+    	SerialCommChannel channel = new SerialCommChannel("/dev/ttyACM0",9600);
+    	DataCollector collector = new DataCollector(channel);
     	collector.start();
     	//new GardenService(5, channel);
     }
