@@ -159,11 +159,4 @@ public class GardenService extends JFrame {
     public void setTemp(String temp) {
     	this.textgeneraltemp.setText(temp);
     }
-    
-    public static void main(String[] args) throws Exception {
-    	SerialCommChannel channel = new SerialCommChannel("/dev/ttyACM0",9600);
-    	DataCollector collector = new DataCollector(channel);
-    	collector.start();
-    	//new GardenService(5, channel);
-    }
 }

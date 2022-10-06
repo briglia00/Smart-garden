@@ -6,7 +6,8 @@
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="lib/jssc-2.9.4.jar"/>
 	<classpathentry kind="lib" path="/home/briglia/git/Smart-garden/garden-service/lib/org.eclipse.paho.client.mqttv3-1.2.5.jar"/>
+	<classpathentry kind="lib" path="/home/briglia/git/Smart-garden/garden-service/lib/jssc-2.9.4.jar"/>
+	<classpathentry kind="lib" path="/home/briglia/git/Smart-garden/garden-service/lib/Java-WebSocket-1.5.3.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
