@@ -11,8 +11,6 @@ IrrigationManager::IrrigationManager(MachineState* mstate, int pin){
   this->servo = new ServoTimer2();
   this->servo->attach(pin);
   this->servo->write(this->pos);
-  this->currentTime = millis();
-  this->waitTime=0;
 }
 
 void IrrigationManager::init(int period){
@@ -20,29 +18,15 @@ void IrrigationManager::init(int period){
 }
 
 void IrrigationManager::startIrrigation(){
-  if (this->waitTime == 0){
-    this->position = OPEN;
-    noInterrupts();
-    this->currentTime = millis();
-    this->waitTime = SWEEPTIME;
-    interrupts();    
-  }
+  this->position = OPEN;
   
 }
 void IrrigationManager::stopIrrigation(){
-  if (this->waitTime == 0){
-    this->position = CLOSED;
-    noInterrupts();
-    this->currentTime = millis();
-    this->waitTime = SLEEPTIME;
-    interrupts();    
-  }
+  this->position = CLOSED;
 }
 
 void IrrigationManager::setIrrigationLevel(speed speedlevel){
-  if (this->waitTime == 0){
-    this->speedlevel = speedlevel;
-  }
+  this->speedlevel = speedlevel;
 }
 
 state IrrigationManager::getStatus(){
@@ -54,20 +38,7 @@ void IrrigationManager::tick(){
   volatile status currentGardenState = mstate->getStatus();
   volatile state tempstatus = this->position;
   interrupts();
-  if (this->waitTime != 0 && millis() > this->currentTime + this->waitTime){
-    if(this->position == OPEN){
-      this->position = CLOSED;
-      noInterrupts();
-      this->currentTime = millis();
-      this->waitTime = SLEEPTIME;
-      interrupts();
-    } else if (this->position == CLOSED){
-      noInterrupts();
-      this->waitTime = 0;
-      this->currentTime = millis();
-      interrupts();
-    }
-  }
+  
   if (currentGardenState != ALARM){
     switch(tempstatus){
       case(OPEN):

@@ -1,162 +1,158 @@
 package gardenservice;
 
-import java.awt.GridLayout;
+
+import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import javax.swing.Timer;
 
-public class GardenService extends JFrame {
-    
-    private static final long serialVersionUID = -6218820567019985015L;
-    private SerialCommChannel channel;
-    JLabel textgeneraltemp;
-    JLabel textgeneralbright;
-    
+import org.eclipse.paho.client.mqttv3.IMqttClient;
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttException;
 
-    public GardenService(int size, SerialCommChannel scc) {
-    	
-    	Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            public void run() {
-                //clearAll();
-            }
-        }, "Shutdown-thread"));
-    	
-        this.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        this.channel = scc;
-        this.setTitle("Garden Service");
-        this.setSize(100*size, 70*size);
-        
-        
-        JPanel panel = new JPanel(new GridLayout(size-1,size));
-        JLabel l1 = new JLabel("Temperature:");
-        JLabel l2 = new JLabel("Brightness:");
-        
-        JButton jupdate = new JButton("Update data");
-        
-        textgeneraltemp = new JLabel("");
-        textgeneralbright = new JLabel("");
-        JTextField texttemp = new JTextField("0");
-        JTextField textbright = new JTextField("0");
-        
-        
-        this.getContentPane().add(panel);
-        this.setVisible(true);
-        panel.add(l1);
-        panel.add(texttemp);
-        panel.add(l2);
-        panel.add(textbright);
-        panel.add(textgeneraltemp);
-        panel.add(textgeneralbright);
-        panel.add(jupdate);
-        
-        
-        /*ActionListener updateData = e -> {
-        	try {
-        		int temp = Integer.parseInt(texttemp.getText());
-        		int bright = Integer.parseInt(textbright.getText());
-        		texttemp.setBackground(Color.white);
-        		textbright.setBackground(Color.white);
-        		
-        		//channel.sendMsg("REFCOF-" + temp);
-        	} catch (NumberFormatException e1) {
-        		texttemp.setBackground(Color.red);
-        		textbright.setBackground(Color.red);
-        	}
-        };
-        
-        ActionListener getStatus = e -> {
-        	try {
-        		channel.sendMsg("GETSTS");
-        		String msg = channel.receiveMsg();
-        		
-        		if(msg == "0") {
-        			textstat.setText("Inizializing");
-        		} else if (msg.equals("1")) {
-        			textstat.setText("Maintenance");
-        		} else if (msg.equals("2")) {
-        			textstat.setText("Ready");
-        		} else if (msg.equals("3")) {
-        			textstat.setText("Making Products");
-        		} else if (msg.equals("4")) {
-        			textstat.setText("Product Done");
-        		} else if (msg.equals("5")) {
-        			textstat.setText("Sleeping");
-        		} else if (msg.equals("6")) {
-        			textstat.setText("Testing");
-        		} else if (msg.equals("7")) {
-        			textstat.setText("Broken");
-        		}
-        	} catch (Exception e1) {
-        		
-        	}
-        };
-        
-        ActionListener getCof = e -> {
-        	try {
-        		channel.sendMsg("GETCOF");
-        		String msg = channel.receiveMsg();
-        		textgcof.setText(msg);
-        	} catch (Exception e1) {
-        		
-        	}
-        };
-        
-        ActionListener getTea = e -> {
-        	try {
-        		channel.sendMsg("GETTEA");
-        		String msg = channel.receiveMsg();
-        		textgtea.setText(msg);
-        	} catch (Exception e1) {
-        		
-        	}
-        };
-        
-        ActionListener getChoc = e -> {
-        	try {
-        		channel.sendMsg("GETCHO");
-        		String msg = channel.receiveMsg();
-        		textgchoc.setText(msg);
-        	} catch (Exception e1) {
-        		
-        	}
-        };
-        
-        ActionListener getSelfTest = e -> {
-        	try {
-        		channel.sendMsg("GETSLF");
-        		String msg = channel.receiveMsg();
-        		textgself.setText(msg);
-        	} catch (Exception e1) {
-        		
-        	}
-        };
-        
-        ActionListener recoverMachine = e -> {
-        	try {
-        		channel.sendMsg("RECOVR");
-        	} catch (Exception e1) {
-        		
-        	}
-        };
-        
-        jself.addActionListener(getSelfTest);
-        jcof.addActionListener(refCoffee);
-        jtea.addActionListener(refTea);
-        jchoc.addActionListener(refChoc);
-        jgcof.addActionListener(getCof);
-        jgtea.addActionListener(getTea);
-        jgchoc.addActionListener(getChoc);
-        jstat.addActionListener(getStatus);
-        jrecover.addActionListener(recoverMachine);*/
-    }
-    
-    public void setTemp(String temp) {
-    	this.textgeneraltemp.setText(temp);
+
+public class GardenService extends Thread {
+	private enum IrrigationStatus {
+		WAITING, RUNNING, STOPPING
+	}
+	
+	private static final String serverMQTT = "tcp://broker.mqttdashboard.com:1883";
+	public final String TOPIC_TEMPERATURE = "garden/temperature";
+	public final String TOPIC_BRIGHTNESS = "garden/light";
+	
+	private String brightness;
+	private String temperature;
+	private IMqttClient publisher;
+	private final SerialCommChannel channel;
+	private final DashboardService ds;
+	private IrrigationStatus irrstat;
+	private static final List<String> IrrigationLevels = Collections.unmodifiableList(Arrays.asList("L", "M", "H"));
+	private static final List<String> IrrigationLevelNames = 
+			Collections.unmodifiableList(Arrays.asList("Low", "Medium", "High"));
+
+	public GardenService(SerialCommChannel scc, DashboardService dashboard) throws MqttException{
+		this.channel = scc;
+		//this.MODE = "AUTO";
+		String publisherId = UUID.randomUUID().toString();
+		this.brightness = "3"; //from 1 to 8
+		this.temperature = "20"; //from 1 to 5
+		this.publisher = new MqttClient(serverMQTT, publisherId);
+		this.publisher.setCallback(new SubscribeCallback(this));
+		this.publisher.connect();
+		this.ds = dashboard;
+		this.irrstat = IrrigationStatus.WAITING;
+		System.out.println("Ready to receive messages.");
+		this.publisher.subscribe(TOPIC_TEMPERATURE);
+		this.publisher.subscribe(TOPIC_BRIGHTNESS);
+	}
+
+	public void run() {
+		int light;
+		int temp;
+		while (true){
+			try {
+				Thread.sleep(8000);
+				light = Integer.parseInt(this.brightness);
+				temp = Integer.parseInt(this.temperature);
+				
+				int realtemp = (temp*10)-10;
+				int reallight = ((light-1) * 107) + 50;
+				this.ds.sendToDashboard("temp;" + realtemp + "°C");
+				this.ds.sendToDashboard("light;" + reallight + " lux");
+				
+				if (light < 5) {
+		        	this.sendMessage("LM12ON", "LM12;ON");
+		        	this.sendMessage("LM34LV" + Integer.toString(light),"LM34;Level of Intensity " + 
+		        	Integer.toString(5-light) + " of 4");
+				} else if (light >= 5) {
+					this.sendMessage("LM12OF", "LM12;OFF");
+					this.sendMessage("LM34LV0", "LM34;OFF");
+				}
+				/*if (temp >= 6) {
+					this.sendMessage("GETIRR","");
+					String msg = channel.receiveMsg();
+					if(msg.equals("1")) {
+						this.sendMessage("SETALM","");
+					}
+				} else*/ if (temp >= 2) {
+					this.startIrrigation(temp - 2);
+				} else if (light < 2) {
+					this.startIrrigation(1);
+				}
+				System.out.println("temp: " + temp + " - light: " + light);
+			} catch (NumberFormatException e1) {
+        		System.out.println("Unreadable value");
+        	} catch (InterruptedException e) {
+        		System.out.println("Timer sleep exception");
+			}
+		}
+	}
+	
+	public void setTemperature(String temp) {
+		this.temperature = temp;
+	}
+	
+	public void setBrightness(String bright) {
+		this.brightness = bright;
+	}
+	
+	private void sendMessage(String s1, String s2) throws InterruptedException {
+		if (!s1.equals("")) {
+			Thread.sleep(500);
+			this.channel.sendMsg(s1);
+		}
+		if (!s2.equals("")) {
+			this.ds.sendToDashboard(s2);
+		}
+	}
+	
+	public void isRunning() {
+		
+	}
+	
+	private void startIrrigation(int irrlvl) throws InterruptedException {
+		if (this.irrstat == IrrigationStatus.WAITING) {
+			Timer timer = new Timer(10000, new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					try {
+						stopIrrigation();
+					} catch (InterruptedException e) {
+						System.out.println("Timer sleep exception");
+					}
+				}
+			});
+			timer.setRepeats(false);
+			this.sendMessage("LVLIRR" + IrrigationLevels.get(irrlvl),"");
+			this.sendMessage("STRIRR","IRR;Irrigation System Running at level " + IrrigationLevelNames.get(irrlvl));
+			this.irrstat = IrrigationStatus.RUNNING;
+			timer.start();
+		}
+	}
+	
+	private void stopIrrigation() throws InterruptedException {
+		if (this.irrstat == IrrigationStatus.RUNNING) {
+			Timer timer = new Timer(20000, new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					irrstat = IrrigationStatus.WAITING;
+				}
+			});
+			timer.setRepeats(false);
+			this.sendMessage("STPIRR","IRR;Irrigation System Stopped");
+			this.irrstat = IrrigationStatus.STOPPING;
+			timer.start();
+		}
+	}
+	
+	public static void main(String[] args) throws Exception {
+    	SerialCommChannel channel = new SerialCommChannel("/dev/ttyACM0",9600);
+    	DashboardService dashboard = new DashboardService(8001);
+    	GardenService collector = new GardenService(channel, dashboard);
+    	collector.start();
     }
 }

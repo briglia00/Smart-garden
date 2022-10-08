@@ -5,9 +5,9 @@ import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 public class SubscribeCallback implements MqttCallback {
-	private DataCollector dc;
+	private GardenService dc;
 	
-	SubscribeCallback(DataCollector dc){
+	SubscribeCallback(GardenService dc){
 		this.dc = dc;
 	}
 

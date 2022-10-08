@@ -1,0 +1,175 @@
+.selector-for-some-widget {
+    box-sizing: border-box;
+}
+
+main .carousel-inner .carousel-item {
+    height:600px;
+    background-position:center;     
+}
+
+main .carousel-inner .carousel-item img {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+}
+
+main .carousel-inner .carousel-item .carousel-caption {
+    vertical-align: top;
+}
+main .carousel-inner .carousel-item .carousel-caption h5 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 48px;
+    vertical-align: top;
+}
+
+main .carousel-inner .carousel-item .carousel-caption p {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 32px;
+    vertical-align: top;
+}
+
+main div.container .form-inline input {
+    border: 1px solid #343a40;
+    border-radius: 60px;
+    box-sizing:border-box;
+    font-family: Arial;
+    font-size: 18px;
+    color: #000000;
+    transition: .3s;
+    
+}
+
+main  div.container .form-inline {
+    padding-bottom: 10px;
+}
+
+main  div.container .form-inline input:hover {
+    background: #495057;
+    color: #FFFFFF;
+    border-radius: 10px;
+}
+
+main div.container  {
+    max-width: 100%;
+    background-color: #f5f8fa;
+}
+
+main div.container .list-group a:focus {
+   
+    box-shadow: 5px 5px 3px #dedede;
+    align-content: center;
+    list-style-position: inside;
+    background-color:  #495057;
+    color: white;
+}
+
+
+main div.container .list-group a:hover{
+    background-color:  #495057;
+    transition: .2s;
+    color: white;
+    font-size: bold;
+}
+
+main div.container .col {
+    align-items: center;
+}
+
+main div.container .card {
+    width: 100%;
+    height: 400px;
+    text-align: center;
+}
+
+main div.container .card a {
+    color: black;
+}
+
+main div.container .card img {
+    width: auto;
+    object-fit: scale-down;
+    height: 200px;
+
+}
+
+.mycols{
+    padding-top: 30px;
+}
+
+
+main div.container .card:hover {
+    outline: none;
+    border-color: #6c9fc9;
+    box-shadow: 2px 2px 2px  ;
+    transform: translateY(-10px);
+    transition: .4s;   
+}
+
+
+
+
+.dropdown-menu {
+    align-content: center;
+    vertical-align:auto;
+}
+
+
+.dropdown:hover .dropdown-menu {
+    display: block; 
+    white-space: nowrap;
+    transition: .5s;
+}
+
+.dropdown {
+    text-align: right;
+}
+
+#panelNotify{
+    display: inline-block;
+    text-align: center;
+    
+}
+
+#bellImage{
+    height: 50px;
+}
+
+#checkNotifyImg {
+    height: 30px;
+}
+
+#notificationCard{
+    overflow-y: scroll;   
+}
+
+#notificationCard p {
+    text-align: center;
+}
+div.dropdown h6{
+    display: inline;
+}
+
+
+#loginbtn {
+    display: inline;
+}
+ul {
+    text-align: end;
+    display: none;
+    list-style-type: none;
+    display: inline;
+}
+
+ul li {
+    text-align: start;
+}
+
+ul a {
+    text-align: center;
+}
+
+ .card-body:hover {
+    transition: .2s;
+    font-size: bold;
+}
+
