@@ -1,2 +1,12 @@
 garden-service/**-tcpbrokermqttdashboardcom1883/
 garden-service/bin/
+garden-app/bt-client/build
+garden-app/bt-lib/build
+garden-app/.gradle
+garden-app/local.properties
+garden-app/.idea/caches/build_file_checksums.ser
+garden-app/.idea/libraries
+garden-app/.idea/modules.xml
+garden-app/.idea/workspace.xml
+*.iml
+garden-app/.idea/caches
