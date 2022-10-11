@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Garden App</string>
+    <string name="button_off">OFF</string>
+    <string name="button_on">ON</string>
+    <string name="button_close">CLOSE</string>
+    <string name="button_open">OPEN</string>
+</resources>

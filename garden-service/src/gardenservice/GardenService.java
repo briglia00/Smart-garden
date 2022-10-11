@@ -20,6 +20,7 @@ public class GardenService extends Thread {
 		WAITING, RUNNING, STOPPING
 	}
 	
+	private String MODE;
 	private static final String serverMQTT = "tcp://broker.mqttdashboard.com:1883";
 	public final String TOPIC_TEMPERATURE = "garden/temperature";
 	public final String TOPIC_BRIGHTNESS = "garden/light";
@@ -36,7 +37,7 @@ public class GardenService extends Thread {
 
 	public GardenService(SerialCommChannel scc, DashboardService dashboard) throws MqttException{
 		this.channel = scc;
-		//this.MODE = "AUTO";
+		this.MODE = "AUTO";
 		String publisherId = UUID.randomUUID().toString();
 		this.brightness = "3"; //from 1 to 8
 		this.temperature = "20"; //from 1 to 5
@@ -51,45 +52,28 @@ public class GardenService extends Thread {
 	}
 
 	public void run() {
-		int light;
-		int temp;
+		Timer timer = new Timer(8000, new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				doCycle();
+			}
+		});
+		timer.setRepeats(true);
+		timer.start();
 		while (true){
-			try {
-				Thread.sleep(8000);
-				light = Integer.parseInt(this.brightness);
-				temp = Integer.parseInt(this.temperature);
-				
-				int realtemp = (temp*10)-10;
-				int reallight = ((light-1) * 107) + 50;
-				this.ds.sendToDashboard("temp;" + realtemp + "°C");
-				this.ds.sendToDashboard("light;" + reallight + " lux");
-				
-				if (light < 5) {
-		        	this.sendMessage("LM12ON", "LM12;ON");
-		        	this.sendMessage("LM34LV" + Integer.toString(light),"LM34;Level of Intensity " + 
-		        	Integer.toString(5-light) + " of 4");
-				} else if (light >= 5) {
-					this.sendMessage("LM12OF", "LM12;OFF");
-					this.sendMessage("LM34LV0", "LM34;OFF");
-				}
-				/*if (temp >= 6) {
-					this.sendMessage("GETIRR","");
-					String msg = channel.receiveMsg();
-					if(msg.equals("1")) {
-						this.sendMessage("SETALM","");
+			if(this.channel.isMsgAvailable()){
+				try {
+					String msg = this.channel.receiveMsg();
+					if (msg.contains("MODE")) {
+						this.MODE = msg.substring(4);
+						System.out.println();
 					}
-				} else*/ if (temp >= 2) {
-					this.startIrrigation(temp - 2);
-				} else if (light < 2) {
-					this.startIrrigation(1);
+				} catch (InterruptedException e) {
+					System.out.println("Error while receiving data");
 				}
-				System.out.println("temp: " + temp + " - light: " + light);
-			} catch (NumberFormatException e1) {
-        		System.out.println("Unreadable value");
-        	} catch (InterruptedException e) {
-        		System.out.println("Timer sleep exception");
 			}
 		}
+		
 	}
 	
 	public void setTemperature(String temp) {
@@ -112,6 +96,46 @@ public class GardenService extends Thread {
 	
 	public void isRunning() {
 		
+	}
+	
+	private void doCycle() {
+		int light;
+		int temp;
+		try {
+			//Thread.sleep(8000);
+			light = Integer.parseInt(this.brightness);
+			temp = Integer.parseInt(this.temperature);
+			int temp2 = (int)(temp / 10) + 1;
+			//int realtemp = (temp*10)-10;
+			int reallight = ((light-1) * 107) + 50;
+			this.ds.sendToDashboard("temp;" + temp + "°C");
+			this.ds.sendToDashboard("light;" + reallight + " lux");
+			
+			if (light < 5) {
+	        	this.sendMessage("LM12ON", "LM12;ON");
+	        	this.sendMessage("LM34LV" + Integer.toString(light),"LM34;Level of Intensity " + 
+	        	Integer.toString(5-light) + " of 4");
+			} else if (light >= 5) {
+				this.sendMessage("LM12OF", "LM12;OFF");
+				this.sendMessage("LM34LV0", "LM34;OFF");
+			}
+			/*if (temp >= 5) {
+				this.sendMessage("GETIRR","");
+				String msg = channel.receiveMsg();
+				if(msg.equals("1")) {
+					this.sendMessage("SETALM","");
+				}
+			} else*/ if (temp2 >= 2) {
+				this.startIrrigation(temp2 - 2);
+			} else if (light < 2) {
+				this.startIrrigation(1);
+			}
+			System.out.println("temp: " + temp2 + " - light: " + light);
+		} catch (NumberFormatException e1) {
+    		System.out.println("Unreadable value");
+    	} catch (InterruptedException e) {
+    		System.out.println("Timer sleep exception");
+		}
 	}
 	
 	private void startIrrigation(int irrlvl) throws InterruptedException {

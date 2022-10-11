@@ -1,6 +1,8 @@
 #ifndef __PHOTORESISTOR__
 #define __PHOTORESISTOR__
 
+#define SENSORPIN 5
+
 class PhotoResistor{
  
 public: 

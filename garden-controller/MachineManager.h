@@ -8,6 +8,7 @@
 #include "VariableLed.h"
 #include "IrrigationManager.h"
 #include "MsgService.h"
+#include "MsgServiceBT.h"
 
 class MachineManager: public Task {
 private:
@@ -19,9 +20,11 @@ private:
   VariableLed* lamp4;
   IrrigationManager* irrmanager;
   MsgServiceClass* msgservice;
+  MsgServiceBT* btmsg;
 
 public:
-  MachineManager(MachineState* mstate, Led* lamp1, Led* lamp2, VariableLed* lamp3, VariableLed* lamp4, IrrigationManager* irrmanager, MsgServiceClass* msgservice);
+  MachineManager(MachineState* mstate, Led* lamp1, Led* lamp2, VariableLed* lamp3, VariableLed* lamp4, 
+  IrrigationManager* irrmanager, MsgServiceClass* msgservice, MsgServiceBT* btmsg);
   void init(int period);
   void tick();
   /*void switchOnBaseLamps();
