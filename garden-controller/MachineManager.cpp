@@ -20,32 +20,31 @@ void MachineManager::init(int period){
 }
 
 void MachineManager::ManageMessages(Msg* msg){
-  String s = msg->getContent(); //.substring(0,6);
-
-  if (s == "STRIRR"){
+  String s = msg->getContent();
+  if (s.equals("STRIRR")){
     this->irrmanager->startIrrigation();
-  } else if (s == "STPIRR"){
+  } else if (s.equals("STPIRR")){
     this->irrmanager->stopIrrigation();
-  } else if (s == "LVLIRRL"){
+  } else if (s.equals("LVLIRRL")){
     this->irrmanager->setIrrigationLevel(LOWS);
-  } else if (s == "LVLIRRM"){
+  } else if (s.equals("LVLIRRM")){
     this->irrmanager->setIrrigationLevel(MEDIUMS);
-  } else if (s == "LVLIRRH"){
+  } else if (s.equals("LVLIRRH")){
     this->irrmanager->setIrrigationLevel(HIGHS);
-  } else if (s == "LM12ON"){
+  } else if (s.equals("LM12ON")){
     this->lamp1->setOn();
     this->lamp2->setOn();
-  } else if (s == "LM12OF"){
+  } else if (s.equals("LM12OF")){
     this->lamp1->setOff();
     this->lamp2->setOff();
-  } else if (s == "LM1ON"){
+  } else if (s.equals("LM1ON")){
     this->lamp1->setOn();
-  } else if (s == "LM2ON"){
+  } else if (s.equals("LM2ON")){
     this->lamp2->setOn();
-  } else if (s == "LM1OF"){
-    this->lamp1->setOn();
-  } else if (s == "LM2OF"){
-    this->lamp2->setOn();
+  } else if (s.equals("LM1OF")){
+    this->lamp1->setOff();
+  } else if (s.equals("LM2OF")){
+    this->lamp2->setOff();
   } else if (s.substring(0,5) == "LM3LV"){
     int templevel = s.substring(5).toInt();
     if (templevel == 0){

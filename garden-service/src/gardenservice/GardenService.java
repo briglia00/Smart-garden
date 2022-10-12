@@ -140,7 +140,7 @@ public class GardenService extends Thread {
 	}
 	
 	private void sendMessage(String s1) throws InterruptedException {
-		Thread.sleep(100);
+		Thread.sleep(150);
 		this.channel.sendMsg(s1);
 	}
 	
@@ -215,6 +215,7 @@ public class GardenService extends Thread {
 	
 	private void switchToMode(String newmode) {
 		try {
+			System.out.println(newmode);
 			if(newmode.contains("ALARM")) {
 				MqttMessage mqttmsg = new MqttMessage("1".getBytes());
 				mqttmsg.setQos(0);
