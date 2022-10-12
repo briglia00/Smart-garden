@@ -3,7 +3,6 @@
 
 #include "Task.h"
 #include "Arduino.h"
-//#include "MachineManager.h"
 
 class Msg {
   String content;
@@ -30,8 +29,6 @@ public:
   Msg* currentMsg;
   bool msgAvailable;
 
-  //void init(int period);  
-
   bool isMsgAvailable();
   Msg* receiveMsg();
 
@@ -42,10 +39,6 @@ public:
   
   void sendMsg(const String& msg);
   void serialEvent();
-  //void tick();
-private:
-  //MachineManager* mmanager;
-  
 };
 
 #endif

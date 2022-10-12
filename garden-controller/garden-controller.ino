@@ -16,6 +16,7 @@
 #define SERVO_PIN 3
 #define RXPIN 11
 #define TXPIN 10
+#define BTSTATUS_PIN 13
 
 Scheduler sched;
 
@@ -26,7 +27,7 @@ void setup() {
   VariableLed* lamp3 = new VariableLed(LAMP3_PIN);
   VariableLed* lamp4 = new VariableLed(LAMP4_PIN);
   MachineState* mstate = new MachineState();
-  MsgServiceBT* bt = new MsgServiceBT(RXPIN, TXPIN);
+  MsgServiceBT* bt = new MsgServiceBT(RXPIN, TXPIN, BTSTATUS_PIN);
   IrrigationManager* irrmanager = new IrrigationManager(mstate, SERVO_PIN);
   MsgServiceClass* msgservice = new MsgServiceClass();
   Task* mmanager = new MachineManager(mstate, lamp1, lamp2, lamp3, lamp4, irrmanager, msgservice, bt);

@@ -3,9 +3,12 @@ package gardenservice;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.swing.Timer;
@@ -39,6 +42,23 @@ public class GardenService extends Thread {
 	private static final List<String> IrrigationLevels = Collections.unmodifiableList(Arrays.asList("L", "M", "H"));
 	private static final List<String> IrrigationLevelNames = 
 			Collections.unmodifiableList(Arrays.asList("Low", "Medium", "High"));
+	private final Map<String, String> serialToDash = Map.ofEntries(
+			  new AbstractMap.SimpleEntry<String, String>("LM1ON", "LM1;ON"),
+			  new AbstractMap.SimpleEntry<String, String>("LM1OF", "LM1;OFF"),
+			  new AbstractMap.SimpleEntry<String, String>("LM2ON", "LM2;ON"),
+			  new AbstractMap.SimpleEntry<String, String>("LM2OF", "LM2;OFF"),
+			  new AbstractMap.SimpleEntry<String, String>("STPIRR", "Irrigation System Stopped"),
+			  new AbstractMap.SimpleEntry<String, String>("LM3LV0", "LM3;OFF"),
+			  new AbstractMap.SimpleEntry<String, String>("LM3LV1", "LM3;Level of Intensity 4 of 4"),
+			  new AbstractMap.SimpleEntry<String, String>("LM3LV2", "LM3;Level of Intensity 3 of 4"),
+			  new AbstractMap.SimpleEntry<String, String>("LM3LV3", "LM3;Level of Intensity 2 of 4"),
+			  new AbstractMap.SimpleEntry<String, String>("LM3LV4", "LM3;Level of Intensity 1 of 4"),
+			  new AbstractMap.SimpleEntry<String, String>("LM4LV0", "LM4;OFF"),
+			  new AbstractMap.SimpleEntry<String, String>("LM4LV1", "LM4;Level of Intensity 4 of 4"),
+			  new AbstractMap.SimpleEntry<String, String>("LM4LV2", "LM4;Level of Intensity 3 of 4"),
+			  new AbstractMap.SimpleEntry<String, String>("LM4LV3", "LM4;Level of Intensity 2 of 4"),
+			  new AbstractMap.SimpleEntry<String, String>("LM4LV4", "LM4;Level of Intensity 1 of 4")
+			  );
 
 	public GardenService(SerialCommChannel scc, DashboardService dashboard) throws MqttException{
 		this.channel = scc;
@@ -84,13 +104,36 @@ public class GardenService extends Thread {
 					String msg = this.channel.receiveMsg();
 					if (msg.contains("MODE")) {
 						switchToMode(msg.substring(4));
+					} 
+					if(msg.contains("LVLIRR")) {
+						int i = IrrigationLevels.indexOf(msg.substring(6, 7));
+						
+					} else if(serialToDash.containsKey(msg)) {
+						this.ds.sendToDashboard(serialToDash.get(msg));
 					}
 				} catch (InterruptedException e) {
 					System.out.println("Error while receiving data");
 				}
 			}
-			if(this.brightness != null && this.temperature != null && this.MODE.equals("AUTO")) {
-				this.doCycle();
+			if(this.brightness != null && this.temperature != null) {
+				try {
+					int light = Integer.parseInt(this.brightness);
+					int temp = Integer.parseInt(this.temperature);
+					
+					this.temperature = null; this.brightness = null;
+					int temp2 = (int)(temp / 10) + 1;
+					int reallight = ((light-1) * 107) + 50;
+					this.ds.sendToDashboard("temp;" + temp + "°C");
+					this.ds.sendToDashboard("light;" + reallight + " lux");
+					
+					if(this.MODE.equals("AUTO")){
+						this.doCycle(temp2, light);
+					}
+				} catch (NumberFormatException e1) {
+		    		System.out.println("Unreadable value");
+		    	} catch (InterruptedException e) {
+		    		System.out.println("Timer sleep exception");
+				}
 			}
 		}
 		
@@ -101,47 +144,36 @@ public class GardenService extends Thread {
 		this.channel.sendMsg(s1);
 	}
 	
-	private void doCycle() {
-		int light;
-		int temp;
-		try {
-			light = Integer.parseInt(this.brightness);
-			temp = Integer.parseInt(this.temperature);
-			this.temperature = null; this.brightness = null;
-			int temp2 = (int)(temp / 10) + 1;
-			//int realtemp = (temp*10)-10;
-			int reallight = ((light-1) * 107) + 50;
-			this.ds.sendToDashboard("temp;" + temp + "°C");
-			this.ds.sendToDashboard("light;" + reallight + " lux");
-			
-			if (light < 5) {
-	        	this.sendMessage("LM12ON");
-	        	this.ds.sendToDashboard("LM12;ON");
-	        	this.sendMessage("LM34LV" + Integer.toString(light));
-	        	this.ds.sendToDashboard("LM34;Level of Intensity " + Integer.toString(5-light) + " of 4");
-			} else if (light >= 5) {
-				this.sendMessage("LM12OF");
-				this.ds.sendToDashboard("LM12;OFF");
-				this.sendMessage("LM34LV0");
-				this.ds.sendToDashboard("LM34;OFF");
-			}
-			/*if (temp >= 5) {
-				this.sendMessage("GETIRR","");
-				String msg = channel.receiveMsg();
-				if(msg.equals("1")) {
-					this.sendMessage("SETALM","");
-				}
-			} else*/ if (temp2 >= 2) {
-				this.startIrrigation(temp2 - 2);
-			} else if (light < 2) {
-				this.startIrrigation(1);
-			}
-			System.out.println("temp: " + temp2 + " - light: " + light);
-		} catch (NumberFormatException e1) {
-    		System.out.println("Unreadable value");
-    	} catch (InterruptedException e) {
-    		System.out.println("Timer sleep exception");
+	private void doCycle(int temp, int light) throws InterruptedException {
+		if (light < 5) {
+        	this.sendMessage("LM12ON");
+        	this.ds.sendToDashboard("LM1;ON");
+        	this.ds.sendToDashboard("LM2;ON");
+        	this.sendMessage("LM3LV" + Integer.toString(light));
+        	this.sendMessage("LM4LV" + Integer.toString(light));
+        	this.ds.sendToDashboard("LM3;Level of Intensity " + Integer.toString(5-light) + " of 4");
+        	this.ds.sendToDashboard("LM4;Level of Intensity " + Integer.toString(5-light) + " of 4");
+		} else if (light >= 5) {
+			this.sendMessage("LM12OF");
+			this.ds.sendToDashboard("LM1;OFF");
+			this.ds.sendToDashboard("LM2;OFF");
+			this.sendMessage("LM3LV0");
+			this.sendMessage("LM4LV0");
+			this.ds.sendToDashboard("LM3;OFF");
+			this.ds.sendToDashboard("LM4;OFF");
 		}
+		/*if (temp >= 5) {
+			this.sendMessage("GETIRR","");
+			String msg = channel.receiveMsg();
+			if(msg.equals("1")) {
+				this.sendMessage("SETALM","");
+			}
+		} else*/ if (temp >= 2) {
+			this.startIrrigation(temp - 2);
+		} else if (light < 2) {
+			this.startIrrigation(1);
+		}
+		System.out.println("temp: " + temp + " - light: " + light);
 	}
 	
 	private void startIrrigation(int irrlvl) throws InterruptedException {

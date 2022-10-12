@@ -9,8 +9,10 @@
       <h3>Garden Status</h3>
       <div class="col-sm-6">
         <p id="conn"></p>
-        <p>Garden Lamps 1 - 2:</p>
-        <p>Garden Lamps 3 - 4:</p>
+        <p>Garden Lamp 1:</p>
+        <p>Garden Lamp 2:</p>
+        <p>Garden Lamp 3:</p>
+        <p>Garden Lamp 4:</p>
         <p>Irrigation Status:</p>
         <p>Temperature:</p>
         <p>Brightness:</p>
@@ -18,8 +20,10 @@
       </div>
       <div class="col-sm-6">
         <p id="conn2"></p>
-        <p id="LM12">__</p>
-        <p id="LM34">__</p>
+        <p id="LM1">__</p>
+        <p id="LM2">__</p>
+        <p id="LM3">__</p>
+        <p id="LM4">__</p>
         <p id="IRR">__</p>
         <p id="temp">__</p>
         <p id="light">__</p>

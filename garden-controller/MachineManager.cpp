@@ -1,6 +1,8 @@
 #include "MachineManager.h"
 
-String gardenMessages[] = {"STRIRR", "STPIRR", "LVLIRR", "LM12ON", "LM12OF", "LM34LV", "SETALM"};
+String irrLevels[] = {"LOWS", "STPIRR", "LVLIRR", "LM12ON", "LM12OF", "LM34LV", "SETALM"};
+brightnesslevel lightLevels[] = {level1, level2, level3, level4};
+
 
 MachineManager::MachineManager(MachineState* mstate, Led* lamp1, Led* lamp2, VariableLed* lamp3, VariableLed* lamp4, 
 IrrigationManager* irrmanager, MsgServiceClass* msgservice, MsgServiceBT* btmsg){
@@ -9,7 +11,8 @@ IrrigationManager* irrmanager, MsgServiceClass* msgservice, MsgServiceBT* btmsg)
   this->irrmanager = irrmanager;
   this->msgservice = msgservice;
   this->btmsg = btmsg;
-  this->btmsg->init();  
+  this->btmsg->init();
+  this->machineState = this->mstate->getStatus();
 }
 
 void MachineManager::init(int period){
@@ -17,54 +20,55 @@ void MachineManager::init(int period){
 }
 
 void MachineManager::ManageMessages(Msg* msg){
-  String s = msg->getContent().substring(0,6);
+  String s = msg->getContent(); //.substring(0,6);
+
   if (s == "STRIRR"){
     this->irrmanager->startIrrigation();
   } else if (s == "STPIRR"){
     this->irrmanager->stopIrrigation();
-  } else if (msg->getContent() == "LVLIRRL"){
+  } else if (s == "LVLIRRL"){
     this->irrmanager->setIrrigationLevel(LOWS);
-  } else if (msg->getContent() == "LVLIRRM"){
+  } else if (s == "LVLIRRM"){
     this->irrmanager->setIrrigationLevel(MEDIUMS);
-  } else if (msg->getContent() == "LVLIRRH"){
+  } else if (s == "LVLIRRH"){
     this->irrmanager->setIrrigationLevel(HIGHS);
   } else if (s == "LM12ON"){
-    //set lamp 1-2 on
     this->lamp1->setOn();
     this->lamp2->setOn();
   } else if (s == "LM12OF"){
-    //set lamp 1-2 off
     this->lamp1->setOff();
     this->lamp2->setOff();
-  } else if (s == "LM11ON"){
+  } else if (s == "LM1ON"){
     this->lamp1->setOn();
-  } else if (s == "LM22ON"){
+  } else if (s == "LM2ON"){
     this->lamp2->setOn();
-  } else if (s == "LM34LV"){
-    //set lamp 3-4 level
-    String temp = msg->getContent().substring(6);
-    Serial.println(temp);
-    if (temp == 0 || temp == "0"){
+  } else if (s == "LM1OF"){
+    this->lamp1->setOn();
+  } else if (s == "LM2OF"){
+    this->lamp2->setOn();
+  } else if (s.substring(0,5) == "LM3LV"){
+    int templevel = s.substring(5).toInt();
+    if (templevel == 0){
       this->lamp3->setOff();
-      this->lamp4->setOff();
-    } else if (temp == 1 || temp == "1"){
-      this->lamp3->setBrightness(level4);
-      this->lamp4->setBrightness(level4);
-    } else if (temp == 2 || temp == "2"){
-      this->lamp3->setBrightness(level3);
-      this->lamp4->setBrightness(level3);
-    } else if (temp == 3 || temp == "3"){
-      this->lamp3->setBrightness(level2);
-      this->lamp4->setBrightness(level2);
-    } else if (temp == 4 || temp == "4"){
-      this->lamp3->setBrightness(level1);
-      this->lamp4->setBrightness(level1);
+    } else if (templevel >= 1 && templevel <= 4){
+      this->lamp3->setBrightness(lightLevels[templevel - 1]);
     }
+  } else if (s.substring(0,5) == "LM4LV"){
+    int templevel = s.substring(5).toInt();
+    if (templevel == 0){
+      this->lamp4->setOff();
+    } else if (templevel >= 1 && templevel <= 4){
+      this->lamp4->setBrightness(lightLevels[templevel - 1]);
+    }
+  } else if (s == "GETSTT"){
+    //this->msgservice->sendMsg(this->mstate->getStatus());
   } else if (s == "SETALM"){
-    //send message to setup alarm
     this->mstate->setStatus(ALARM);
   }
-  delete msg;
+
+  if (this->machineState == MANUAL){
+    this->msgservice->sendMsg(s);
+  }
 }
 
 void MachineManager::tick(){  
@@ -78,37 +82,28 @@ void MachineManager::tick(){
         if(!this->btmsg->isMsgAvailable()){
           break;
         }
-        Msg* msg2 = this->btmsg->receiveMsg();
-        if (msg2 == NULL){
+        Msg* msgb = this->btmsg->receiveMsg();
+        if (msgb == NULL){
           break;
-        }        
-        if(this->btmsg->isMsgAvailable() && msg2->getContent() == "AUTOREQ") {
-          //invia messaggio di transizione a AUTO MODE
+        }
+        if(msgb->getContent() == "AUTOREQ") {
           this->msgservice->sendMsg("MODEAUTO");
           noInterrupts();
           this->mstate->setStatus(AUTO);
           interrupts();
           break;
         }
-        
-        String s2 = msg2->getContent(); //.substring(0,6);
-        Serial.println(s2);
-        if (s2 == "LM12ON"){
-          //set lamp 1-2 on
-          this->lamp1->setOn();
-          this->lamp2->setOn();
-        } else if (s2 == "LM12OF"){
-          //set lamp 1-2 off
-          this->lamp1->setOff();
-          this->lamp2->setOff();
-        }
-        delete msg2;
+        this->ManageMessages(msgb);
+        //manda stesso messaggio al garden-service
+        delete msgb;
       }
       break;
     case(AUTO):
       {
+        if(this->btmsg->isConnected()){
+          //send all data
+        }
         if(this->btmsg->isMsgAvailable() && this->btmsg->receiveMsg()->getContent() == "MANUALREQ") {
-          //invia messaggio di transizione a MANUAL MODE
           this->msgservice->sendMsg("MODEMANUAL");
           noInterrupts();
           this->mstate->setStatus(MANUAL);
@@ -123,7 +118,19 @@ void MachineManager::tick(){
           break;
         }
         this->ManageMessages(msg);
+        delete msg;
       }
       break;
+    case(ALARM):
+    {
+      if(this->btmsg->isMsgAvailable() && this->btmsg->receiveMsg()->getContent() == "DISABLEALARM") {
+        this->msgservice->sendMsg("MODEMANUAL");
+        noInterrupts();
+        this->mstate->setStatus(MANUAL);
+        interrupts();
+        break;
+      }
+    }
+    break;
   }
 }

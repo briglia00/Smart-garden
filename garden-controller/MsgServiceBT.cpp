@@ -2,8 +2,9 @@
 #include "MsgServiceBT.h"
 
 
-MsgServiceBT::MsgServiceBT(int rxPin, int txPin){
-  channel = new SoftwareSerial(rxPin, txPin);
+MsgServiceBT::MsgServiceBT(int rxPin, int txPin, int statuspin){
+  this->channel = new SoftwareSerial(rxPin, txPin);
+  this->statuspin = statuspin;
 }
 
 void MsgServiceBT::init(){
@@ -38,4 +39,8 @@ Msg* MsgServiceBT::receiveMsg(){
   } else {
     return NULL;
   }
+}
+
+bool MsgServiceBT::isConnected(){
+  return digitalRead(this->statuspin) == 1;
 }
