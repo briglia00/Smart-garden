@@ -21,6 +21,7 @@ private:
   IrrigationManager* irrmanager;
   MsgServiceClass* msgservice;
   MsgServiceBT* btmsg;
+  void ManageMessages(Msg* msg);
 
 public:
   MachineManager(MachineState* mstate, Led* lamp1, Led* lamp2, VariableLed* lamp3, VariableLed* lamp4, 

@@ -23,7 +23,7 @@
         <p id="IRR">__</p>
         <p id="temp">__</p>
         <p id="light">__</p>
-        <p>AUTO</p>
+        <p id="MODE">AUTO</p>
       </div>
     </div>
   </div>

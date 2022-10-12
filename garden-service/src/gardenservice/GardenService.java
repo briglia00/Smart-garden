@@ -11,8 +11,12 @@ import java.util.UUID;
 import javax.swing.Timer;
 
 import org.eclipse.paho.client.mqttv3.IMqttClient;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.MqttPersistenceException;
 
 
 public class GardenService extends Thread {
@@ -24,6 +28,7 @@ public class GardenService extends Thread {
 	private static final String serverMQTT = "tcp://broker.mqttdashboard.com:1883";
 	public final String TOPIC_TEMPERATURE = "garden/temperature";
 	public final String TOPIC_BRIGHTNESS = "garden/light";
+	public final String TOPIC_ALARM = "garden/alarm";
 	
 	private String brightness;
 	private String temperature;
@@ -39,11 +44,32 @@ public class GardenService extends Thread {
 		this.channel = scc;
 		this.MODE = "AUTO";
 		String publisherId = UUID.randomUUID().toString();
-		this.brightness = "3"; //from 1 to 8
-		this.temperature = "20"; //from 1 to 5
+		this.brightness = null; //from 1 to 8
+		this.temperature = null; //from 1 to 5
 		this.publisher = new MqttClient(serverMQTT, publisherId);
-		this.publisher.setCallback(new SubscribeCallback(this));
+		this.publisher.setCallback(new MqttCallback(){
+			@Override
+		    public void connectionLost(Throwable cause) {}
+
+		    @Override
+		    public void messageArrived(String topic, MqttMessage message) {
+		         //System.out.println("Message arrived. Topic: " + topic + " Message: " + message.toString());
+		         /*if ("home/LWT".equals(topic)){
+		              System.err.println("Sensor gone!");
+		         }*/
+		         if (TOPIC_BRIGHTNESS.equals(topic)) {
+		        	 brightness = message.toString();
+		         }
+		         if (TOPIC_TEMPERATURE.equals(topic)) {
+		        	 temperature = message.toString();
+		         }
+		    }
+		    
+		    @Override
+		    public void deliveryComplete(IMqttDeliveryToken token) {}
+		});
 		this.publisher.connect();
+		
 		this.ds = dashboard;
 		this.irrstat = IrrigationStatus.WAITING;
 		System.out.println("Ready to receive messages.");
@@ -52,59 +78,36 @@ public class GardenService extends Thread {
 	}
 
 	public void run() {
-		Timer timer = new Timer(8000, new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				doCycle();
-			}
-		});
-		timer.setRepeats(true);
-		timer.start();
 		while (true){
 			if(this.channel.isMsgAvailable()){
 				try {
 					String msg = this.channel.receiveMsg();
 					if (msg.contains("MODE")) {
-						this.MODE = msg.substring(4);
-						System.out.println();
+						switchToMode(msg.substring(4));
 					}
 				} catch (InterruptedException e) {
 					System.out.println("Error while receiving data");
 				}
 			}
+			if(this.brightness != null && this.temperature != null && this.MODE.equals("AUTO")) {
+				this.doCycle();
+			}
 		}
 		
 	}
 	
-	public void setTemperature(String temp) {
-		this.temperature = temp;
-	}
-	
-	public void setBrightness(String bright) {
-		this.brightness = bright;
-	}
-	
-	private void sendMessage(String s1, String s2) throws InterruptedException {
-		if (!s1.equals("")) {
-			Thread.sleep(500);
-			this.channel.sendMsg(s1);
-		}
-		if (!s2.equals("")) {
-			this.ds.sendToDashboard(s2);
-		}
-	}
-	
-	public void isRunning() {
-		
+	private void sendMessage(String s1) throws InterruptedException {
+		Thread.sleep(100);
+		this.channel.sendMsg(s1);
 	}
 	
 	private void doCycle() {
 		int light;
 		int temp;
 		try {
-			//Thread.sleep(8000);
 			light = Integer.parseInt(this.brightness);
 			temp = Integer.parseInt(this.temperature);
+			this.temperature = null; this.brightness = null;
 			int temp2 = (int)(temp / 10) + 1;
 			//int realtemp = (temp*10)-10;
 			int reallight = ((light-1) * 107) + 50;
@@ -112,12 +115,15 @@ public class GardenService extends Thread {
 			this.ds.sendToDashboard("light;" + reallight + " lux");
 			
 			if (light < 5) {
-	        	this.sendMessage("LM12ON", "LM12;ON");
-	        	this.sendMessage("LM34LV" + Integer.toString(light),"LM34;Level of Intensity " + 
-	        	Integer.toString(5-light) + " of 4");
+	        	this.sendMessage("LM12ON");
+	        	this.ds.sendToDashboard("LM12;ON");
+	        	this.sendMessage("LM34LV" + Integer.toString(light));
+	        	this.ds.sendToDashboard("LM34;Level of Intensity " + Integer.toString(5-light) + " of 4");
 			} else if (light >= 5) {
-				this.sendMessage("LM12OF", "LM12;OFF");
-				this.sendMessage("LM34LV0", "LM34;OFF");
+				this.sendMessage("LM12OF");
+				this.ds.sendToDashboard("LM12;OFF");
+				this.sendMessage("LM34LV0");
+				this.ds.sendToDashboard("LM34;OFF");
 			}
 			/*if (temp >= 5) {
 				this.sendMessage("GETIRR","");
@@ -151,8 +157,9 @@ public class GardenService extends Thread {
 				}
 			});
 			timer.setRepeats(false);
-			this.sendMessage("LVLIRR" + IrrigationLevels.get(irrlvl),"");
-			this.sendMessage("STRIRR","IRR;Irrigation System Running at level " + IrrigationLevelNames.get(irrlvl));
+			this.sendMessage("LVLIRR" + IrrigationLevels.get(irrlvl));
+			this.sendMessage("STRIRR");
+			this.ds.sendToDashboard("IRR;Irrigation System Running at level " + IrrigationLevelNames.get(irrlvl));
 			this.irrstat = IrrigationStatus.RUNNING;
 			timer.start();
 		}
@@ -167,16 +174,43 @@ public class GardenService extends Thread {
 				}
 			});
 			timer.setRepeats(false);
-			this.sendMessage("STPIRR","IRR;Irrigation System Stopped");
+			this.sendMessage("STPIRR");
+			this.ds.sendToDashboard("IRR;Irrigation System Stopped");
 			this.irrstat = IrrigationStatus.STOPPING;
 			timer.start();
 		}
+	}
+	
+	private void switchToMode(String newmode) {
+		try {
+			if(newmode.contains("ALARM")) {
+				MqttMessage mqttmsg = new MqttMessage("1".getBytes());
+				mqttmsg.setQos(0);
+				this.publisher.publish(TOPIC_ALARM, mqttmsg);
+			} else if(this.MODE == "ALARM" && !newmode.contains("ALARM")) {
+				MqttMessage mqttmsg = new MqttMessage("0".getBytes());
+				mqttmsg.setQos(0);
+				this.publisher.publish(TOPIC_ALARM, mqttmsg);
+			}
+		} catch (MqttPersistenceException e1) {
+			System.out.println("Error while Sending alarm message to esp");
+		} catch (MqttException e2) {
+			System.out.println("Error while Sending alarm message to esp");
+		}
+		this.MODE = newmode;
+		this.ds.sendToDashboard("MODE;" + newmode);
 	}
 	
 	public static void main(String[] args) throws Exception {
     	SerialCommChannel channel = new SerialCommChannel("/dev/ttyACM0",9600);
     	DashboardService dashboard = new DashboardService(8001);
     	GardenService collector = new GardenService(channel, dashboard);
+    	Runtime.getRuntime().addShutdownHook(new Thread(){
+			@Override
+			public void run() {
+				System.out.println("Performing shutdown");
+			}
+		});
     	collector.start();
     }
 }
