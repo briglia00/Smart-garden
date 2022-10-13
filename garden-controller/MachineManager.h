@@ -12,7 +12,7 @@
 
 class MachineManager: public Task {
 private:
-  volatile status machineState;
+  volatile MachineMode machineState;
   MachineState* mstate;
   Led* lamp1;
   Led* lamp2;
@@ -22,15 +22,13 @@ private:
   MsgServiceClass* msgservice;
   MsgServiceBT* btmsg;
   void ManageMessages(Msg* msg);
+  void onBtConnect();
 
 public:
   MachineManager(MachineState* mstate, Led* lamp1, Led* lamp2, VariableLed* lamp3, VariableLed* lamp4, 
   IrrigationManager* irrmanager, MsgServiceClass* msgservice, MsgServiceBT* btmsg);
   void init(int period);
   void tick();
-  /*void switchOnBaseLamps();
-  void switchOffBaseLamps();
-  void setVariableLamps(brightnesslevel level);*/
 };
 
 #endif

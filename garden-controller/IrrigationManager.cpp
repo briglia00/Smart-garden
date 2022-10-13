@@ -29,14 +29,25 @@ void IrrigationManager::setIrrigationLevel(speed speedlevel){
   this->speedlevel = speedlevel;
 }
 
-state IrrigationManager::getStatus(){
+IrrState IrrigationManager::getStatus(){
   return this->position;
+}
+
+int IrrigationManager::getIrrigationSpeed(){
+  if(this->speedlevel == LOWS){
+    return 1;
+  } else if (this->speedlevel == MEDIUMS){
+    return 2;
+  } else if (this->speedlevel == HIGHS){
+    return 3;
+  }
+  return 0;
 }
 
 void IrrigationManager::tick(){
   noInterrupts();
-  volatile status currentGardenState = mstate->getStatus();
-  volatile state tempstatus = this->position;
+  volatile MachineMode currentGardenState = mstate->getStatus();
+  volatile IrrState tempstatus = this->position;
   interrupts();
   
   if (currentGardenState != ALARM){

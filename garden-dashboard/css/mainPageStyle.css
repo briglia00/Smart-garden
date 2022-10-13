@@ -168,8 +168,11 @@ ul a {
     text-align: center;
 }
 
- .card-body:hover {
+.card-body:hover {
     transition: .2s;
     font-size: bold;
 }
 
+#logoImg {
+    width: 100px;
+}

@@ -4,19 +4,6 @@
 #include "Arduino.h"
 #include "SoftwareSerial.h"
 #include "MsgService.h"
-/*
-class Msg {
-  String content;
-
-public:
-  Msg(const String& content){
-    this->content = content;
-  }
-  
-  String getContent(){
-    return content;
-  }
-};*/
 
 class MsgServiceBT {
     

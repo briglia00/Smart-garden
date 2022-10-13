@@ -24,6 +24,7 @@ import btlib.exceptions.BluetoothDeviceNotFound;
 public class MainActivity extends AppCompatActivity {
     private BluetoothChannel btChannel;
     private boolean ManualControl;
+    private final String[] irrlevels = {"L","M","H"};
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -44,7 +45,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setDefaultState(){
-        findViewById(R.id.alarm_button).setVisibility(View.INVISIBLE);
         findViewById(R.id.lamp1_button).setEnabled(false);
         findViewById(R.id.lamp2_button).setEnabled(false);
         findViewById(R.id.lamp3_minus_button).setEnabled(false);
@@ -54,11 +54,10 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.irr_plus_button).setEnabled(false);
         findViewById(R.id.irr_minus_button).setEnabled(false);
         findViewById(R.id.irrigation_button).setEnabled(false);
-        setAllText("OFF", "OFF", 0, 0, "OPEN", 1);
+        //setAllText("OFF", "OFF", 0, 0, "OPEN", 1);
     }
 
     private void enableAllButtons(){
-        findViewById(R.id.alarm_button).setVisibility(View.INVISIBLE);
         findViewById(R.id.lamp1_button).setEnabled(true);
         findViewById(R.id.lamp2_button).setEnabled(true);
         findViewById(R.id.lamp3_minus_button).setEnabled(true);
@@ -68,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.irr_plus_button).setEnabled(true);
         findViewById(R.id.irr_minus_button).setEnabled(true);
         findViewById(R.id.irrigation_button).setEnabled(true);
-        setAllText("OFF", "OFF", 0, 0, "OPEN", 1);
+        //setAllText("OFF", "OFF", 0, 0, "OPEN", 1);
     }
 
     private void setAllText(String l1on, String l2on, int l3level, int l4level, String irron, int irrlevel){
@@ -82,6 +81,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void initUI() {
         setDefaultState();
+        findViewById(R.id.alarm_button).setVisibility(View.INVISIBLE);
+        setAllText("OFF", "OFF", 0, 0, "OPEN", 1);
         findViewById(R.id.connect_button).setEnabled(true);
         findViewById(R.id.manual_button).setEnabled(false);
 
@@ -103,11 +104,13 @@ public class MainActivity extends AppCompatActivity {
                 btChannel.sendMessage("AUTOREQ");
                 ((TextView) l).setText("Require Manual Control");
                 ManualControl = false;
+                //set auto state
                 setDefaultState();
             } else {
                 btChannel.sendMessage("MANUALREQ");
                 ((TextView) l).setText("Set Auto Control");
                 ManualControl = true;
+                //set manual state
                 enableAllButtons();
             }
         });
@@ -116,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
             if(((TextView) l).getText().toString().equals("ON")){
                 btChannel.sendMessage("LM1OF");
                 ((TextView) l).setText("OFF");
-            } else { // if(((TextView) l).getText().toString().equals("OFF")) {
+            } else if(((TextView) l).getText().toString().equals("OFF")){
                 btChannel.sendMessage("LM1ON");
                 ((TextView) l).setText("ON");
             }
@@ -181,10 +184,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.irr_plus_button).setOnClickListener(l -> {
-            //accendi luce 3
             try {
                 int val = Integer.parseInt(((TextView) findViewById(R.id.irr_text)).getText().toString());
                 if(val >= 1 && val <=2){
+                    btChannel.sendMessage("LVLIRR" + irrlevels[val]);
                     ((TextView) findViewById(R.id.irr_text)).setText(Integer.toString(val + 1));
                 }
             } catch (NumberFormatException e) {
@@ -193,10 +196,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.irr_minus_button).setOnClickListener(l -> {
-            //accendi luce 3
             try {
                 int val = Integer.parseInt(((TextView) findViewById(R.id.irr_text)).getText().toString());
                 if(val >= 2 && val <=3){
+                    btChannel.sendMessage("LVLIRR" + irrlevels[val - 2]);
                     ((TextView) findViewById(R.id.irr_text)).setText(Integer.toString(val - 1));
                 }
             } catch (NumberFormatException e) {
@@ -212,6 +215,12 @@ public class MainActivity extends AppCompatActivity {
                 btChannel.sendMessage("STPIRR");
                 ((TextView) l).setText(R.string.button_open);
             }
+        });
+        findViewById(R.id.alarm_button).setOnClickListener(l -> {
+            btChannel.sendMessage("DISABLEALARM");
+            ManualControl = true;
+            enableAllButtons();
+            l.setVisibility(View.INVISIBLE);
         });
     }
 
@@ -245,7 +254,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onConnectionActive(final BluetoothChannel channel) {
                 ((TextView) findViewById(R.id.connect_text)).setText(String.format(
-                    "Status : connected to server on device %s",
+                    "Status : connected to device %s",
                     serverDevice.getName()
                 ));
 
@@ -255,21 +264,23 @@ public class MainActivity extends AppCompatActivity {
                 btChannel.registerListener(new RealBluetoothChannel.Listener() {
                     @Override
                     public void onMessageReceived(String receivedMessage) {
-                        /*((TextView) findViewById(R.id.chatLabel)).append(String.format(
-                            "> [RECEIVED from %s] %s\n",
-                            btChannel.getRemoteDeviceName(),
-                            receivedMessage
-                        ));*/
+                        if (receivedMessage.substring(0,3).equals("ALL")){
+                            String[] elems = receivedMessage.substring(4).split(";");
+                            if(elems[6].equals("ALARM")){
+                                setDefaultState();
+                                findViewById(R.id.alarm_button).setVisibility(View.VISIBLE);
+                            }
+                            try{
+                                setAllText(elems[0], elems[1], Integer.parseInt(elems[2]),Integer.parseInt(elems[3]),
+                                        elems[4], Integer.parseInt(elems[5]));
+                            } catch(NumberFormatException e1) {
+                                e1.printStackTrace();
+                            }
+                        }
                     }
 
                     @Override
-                    public void onMessageSent(String sentMessage) {
-                        /*((TextView) findViewById(R.id.chatLabel)).append(String.format(
-                                "> [SENT to %s] %s\n",
-                                btChannel.getRemoteDeviceName(),
-                                sentMessage
-                        ));*/
-                    }
+                    public void onMessageSent(String sentMessage) {}
                 });
             }
 

@@ -1,18 +1,18 @@
 #ifndef __MACHINESTATE__
 #define __MACHINESTATE__
 
-enum status {
+enum MachineMode {
   AUTO, MANUAL, ALARM
 };
 
 class MachineState {
 private:
-  status machineState;
+  MachineMode machineState;
 
 public:
   MachineState();
-  void setStatus(status stat);
-  status getStatus();
+  void setStatus(MachineMode stat);
+  MachineMode getStatus();
   
 };
 

@@ -6,11 +6,11 @@ Led::Led(int pin){
 } 
 
 bool Led::isOn(){
-  return digitalRead(this->pin);  
+  return digitalRead(this->pin == HIGH);  
 }
 
 void Led::setOn(){
-  digitalWrite(this->pin, 255);
+  digitalWrite(this->pin, HIGH);
 }
 
 void Led::setOff(){

@@ -7,7 +7,7 @@
   <div class="container">
     <div class="row">
       <h3>Garden Status</h3>
-      <div class="col-sm-6">
+      <div class="col-sm-3">
         <p id="conn"></p>
         <p>Garden Lamp 1:</p>
         <p>Garden Lamp 2:</p>
@@ -18,7 +18,7 @@
         <p>Brightness:</p>
         <p>Garden Mode</p>
       </div>
-      <div class="col-sm-6">
+      <div class="col-sm-3">
         <p id="conn2"></p>
         <p id="LM1">__</p>
         <p id="LM2">__</p>

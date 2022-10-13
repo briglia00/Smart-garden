@@ -5,10 +5,10 @@ MachineState::MachineState(){
   this->machineState = AUTO;
 }
 
-status MachineState::getStatus(){
+MachineMode MachineState::getStatus(){
   return this->machineState;
 }
 
-void MachineState::setStatus(status stat){
+void MachineState::setStatus(MachineMode stat){
   this->machineState = stat;
 }

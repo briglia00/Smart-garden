@@ -12,7 +12,7 @@ enum speed {
   LOWS=10, MEDIUMS=25, HIGHS=40
 };
 
-enum state{
+enum IrrState{
   OPEN, CLOSED
 };
 
@@ -21,7 +21,7 @@ class IrrigationManager: public Task {
   int pin;
   int pos;
   int delta;
-  state position;
+  IrrState position;
   speed speedlevel;
   ServoTimer2* servo;
 
@@ -32,7 +32,8 @@ public:
   void startIrrigation();
   void stopIrrigation();
   void setIrrigationLevel(speed speedlevel);
-  state getStatus();
+  IrrState getStatus();
+  int getIrrigationSpeed();
 };
 
 #endif

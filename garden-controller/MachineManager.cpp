@@ -1,7 +1,7 @@
 #include "MachineManager.h"
 
 String irrLevels[] = {"LOWS", "STPIRR", "LVLIRR", "LM12ON", "LM12OF", "LM34LV", "SETALM"};
-brightnesslevel lightLevels[] = {level1, level2, level3, level4};
+brightnesslevel lightLevels[] = {level0, level1, level2, level3, level4};
 
 
 MachineManager::MachineManager(MachineState* mstate, Led* lamp1, Led* lamp2, VariableLed* lamp3, VariableLed* lamp4, 
@@ -47,17 +47,13 @@ void MachineManager::ManageMessages(Msg* msg){
     this->lamp2->setOff();
   } else if (s.substring(0,5) == "LM3LV"){
     int templevel = s.substring(5).toInt();
-    if (templevel == 0){
-      this->lamp3->setOff();
-    } else if (templevel >= 1 && templevel <= 4){
-      this->lamp3->setBrightness(lightLevels[templevel - 1]);
+    if (templevel >= 0 && templevel <= 4){
+      this->lamp3->setBrightness(lightLevels[templevel]);
     }
   } else if (s.substring(0,5) == "LM4LV"){
     int templevel = s.substring(5).toInt();
-    if (templevel == 0){
-      this->lamp4->setOff();
-    } else if (templevel >= 1 && templevel <= 4){
-      this->lamp4->setBrightness(lightLevels[templevel - 1]);
+    if (templevel >= 0 && templevel <= 4){
+      this->lamp4->setBrightness(lightLevels[templevel]);
     }
   } else if (s == "GETSTT"){
     //this->msgservice->sendMsg(this->mstate->getStatus());
@@ -70,6 +66,23 @@ void MachineManager::ManageMessages(Msg* msg){
   }
 }
 
+void MachineManager::onBtConnect(){
+  String temps = "AUTO";
+  if(this->machineState == MANUAL){
+    temps = "MANUAL";
+  } else if(this->machineState == ALARM){
+    temps = "ALARM";
+  }
+  String x = "ALL;" + String(this->lamp1->isOn() ? "ON" : "OFF") + ";" +  
+  String(this->lamp2->isOn() ? "ON" : "OFF") + ";" + 
+  String(this->lamp3->getBrightnessLevel()) + ";" + 
+  String(this->lamp4->getBrightnessLevel()) + ";" + 
+  String(this->irrmanager->getStatus() == OPEN ? "CLOSE" : "OPEN") + ";" +
+  String(this->irrmanager->getIrrigationSpeed()) + ";" + temps + ";";
+  this->btmsg->sendMsg(x);
+}
+
+
 void MachineManager::tick(){  
   noInterrupts();
   this->machineState = this->mstate->getStatus();
@@ -78,6 +91,14 @@ void MachineManager::tick(){
   switch(this->machineState){
     case(MANUAL):
       {
+        if(!this->btmsg->isConnected()){
+          this->msgservice->sendMsg("MODEAUTO");
+          //onBtConnect();
+          noInterrupts();
+          this->mstate->setStatus(AUTO);
+          interrupts();
+          break;
+        }
         if(!this->btmsg->isMsgAvailable()){
           break;
         }
@@ -87,26 +108,25 @@ void MachineManager::tick(){
         }
         if(msgb->getContent() == "AUTOREQ") {
           this->msgservice->sendMsg("MODEAUTO");
+          this->irrmanager->stopIrrigation();
           noInterrupts();
           this->mstate->setStatus(AUTO);
           interrupts();
           break;
         }
         this->ManageMessages(msgb);
-        //manda stesso messaggio al garden-service
         delete msgb;
       }
       break;
     case(AUTO):
       {
-        if(this->btmsg->isConnected()){
-          //send all data
-        }
-        if(this->btmsg->isMsgAvailable() && this->btmsg->receiveMsg()->getContent() == "MANUALREQ") {
+        if(this->btmsg->isMsgAvailable() && this->btmsg->receiveMsg()->getContent().equals("MANUALREQ")) {
           this->msgservice->sendMsg("MODEMANUAL");
           noInterrupts();
           this->mstate->setStatus(MANUAL);
+          this->machineState = MANUAL;
           interrupts();
+          onBtConnect();
           break;
         }
         if(!this->msgservice->isMsgAvailable()){
@@ -122,13 +142,21 @@ void MachineManager::tick(){
       break;
     case(ALARM):
     {
-      if(this->btmsg->isMsgAvailable() && this->btmsg->receiveMsg()->getContent() == "DISABLEALARM") {
+      if(!this->btmsg->isMsgAvailable()){
+        break;
+      } 
+      Msg* msg = this->btmsg->receiveMsg();
+      if(msg->getContent().equals("MANUALREQ")) {
+        onBtConnect();
+      } else if(msg->getContent().equals("DISABLEALARM")) {
         this->msgservice->sendMsg("MODEMANUAL");
         noInterrupts();
         this->mstate->setStatus(MANUAL);
+        this->machineState = MANUAL;
         interrupts();
-        break;
+        onBtConnect();
       }
+      delete msg;
     }
     break;
   }

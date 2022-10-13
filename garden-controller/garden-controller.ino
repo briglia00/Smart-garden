@@ -9,8 +9,8 @@
 #include "VariableLed.h"
 #include "MsgServiceBT.h"
 
-#define LAMP1_PIN 7
-#define LAMP2_PIN 8
+#define LAMP1_PIN 8
+#define LAMP2_PIN 2
 #define LAMP3_PIN 5
 #define LAMP4_PIN 6
 #define SERVO_PIN 3
