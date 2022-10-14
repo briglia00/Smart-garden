@@ -3,10 +3,11 @@
 
 Led::Led(int pin){
   this->pin = pin;
+  pinMode(this->pin, OUTPUT);
 } 
 
 bool Led::isOn(){
-  return digitalRead(this->pin == HIGH);  
+  return digitalRead(this->pin) == HIGH;  
 }
 
 void Led::setOn(){

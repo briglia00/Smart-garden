@@ -9,13 +9,9 @@ import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
 public class DashboardService extends WebSocketServer {
-	//private InetAddress addr;
-    //private Socket sock;
-    //private String server;
     
 	public DashboardService(int port) throws UnknownHostException {
 		super(new InetSocketAddress(port));
-	    this.start();
 	    System.out.println("Dashboard started on address: " + this.getAddress());
 	}
 
@@ -25,9 +21,9 @@ public class DashboardService extends WebSocketServer {
 
 	@Override
 	public void onOpen(WebSocket conn, ClientHandshake handshake) {
-	    conn.send("Welcome to the server!"); //This method sends a message to the new client
+	    conn.send("Welcome!"); //This method sends a message to the new client
 	    broadcast("new connection: " + handshake.getResourceDescriptor()); //This method sends a message to all clients connected
-	    System.out.println("Connected with " + conn.getRemoteSocketAddress().getAddress().getHostAddress());
+	    System.out.println("Connected to " + conn.getRemoteSocketAddress().getAddress().getHostAddress());
 	}
 
 	@Override
@@ -50,14 +46,11 @@ public class DashboardService extends WebSocketServer {
 	@Override
 	public void onError(WebSocket conn, Exception ex) {
 	    ex.printStackTrace();
-	    if (conn != null) {
-	    	// some errors like port binding failed may not be assignable to a specific websocket
-	    }
 	}
 
 	@Override
 	public void onStart() {
-	    System.out.println("Server started!");
+	    System.out.println("Dashboard Service Started!");
 	    setConnectionLostTimeout(0);
 	    setConnectionLostTimeout(100);
 	}

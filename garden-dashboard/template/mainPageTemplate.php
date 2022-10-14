@@ -5,29 +5,43 @@
   </div>
   <?php endif; ?>
   <div class="container">
-    <div class="row">
-      <h3>Garden Status</h3>
-      <div class="col-sm-3">
-        <p id="conn"></p>
-        <p>Garden Lamp 1:</p>
-        <p>Garden Lamp 2:</p>
-        <p>Garden Lamp 3:</p>
-        <p>Garden Lamp 4:</p>
-        <p>Irrigation Status:</p>
-        <p>Temperature:</p>
-        <p>Brightness:</p>
-        <p>Garden Mode</p>
-      </div>
-      <div class="col-sm-3">
-        <p id="conn2"></p>
-        <p id="LM1">__</p>
-        <p id="LM2">__</p>
-        <p id="LM3">__</p>
-        <p id="LM4">__</p>
-        <p id="IRR">__</p>
-        <p id="temp">__</p>
-        <p id="light">__</p>
-        <p id="MODE">AUTO</p>
-      </div>
-    </div>
+    <h3>Garden Status</h3>
+    <table>
+      <tr>
+        <th><p id="conn"></p></th>
+        <th><p id="conn2"></p></th>
+      </tr>
+      <tr>
+        <td><p>Garden Lamp 1:</p></td>
+        <td><p id="LM1">__</p></td>
+      </tr>
+      <tr>
+        <td><p>Garden Lamp 2:</p></td>
+        <td><p id="LM2">__</p></td>
+      </tr>
+      <tr>
+        <td><p>Garden Lamp 3:</p></td>
+        <td><p id="LM3">__</p></td>
+      </tr>
+      <tr>
+        <td><p>Garden Lamp 4:</p></td>
+        <td><p id="LM4">__</p></td>
+      </tr>
+      <tr>
+        <td><p>Irrigation Status:</p></td>
+        <td><p id="IRR">__</p></td>
+      </tr>
+      <tr>
+        <td><p>Temperature:</p></td>
+        <td><p id="temp">__</p></td>
+      </tr>
+      <tr>
+        <td><p>Brightness:</p></td>
+        <td><p id="light">__</p></td>
+      </tr>
+      <tr>
+        <td><p>Garden Mode:</p></td>
+        <td><p id="MODE">AUTO</p></td>
+      </tr>
+    </table>
   </div>

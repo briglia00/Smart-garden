@@ -23,7 +23,7 @@ import btlib.exceptions.BluetoothDeviceNotFound;
 
 public class MainActivity extends AppCompatActivity {
     private BluetoothChannel btChannel;
-    private boolean ManualControl;
+    private boolean manualControl;
     private final String[] irrlevels = {"L","M","H"};
 
     @Override
@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ManualControl = false;
+        manualControl = false;
         final BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
 
         if(btAdapter != null && !btAdapter.isEnabled()) {
@@ -40,8 +40,45 @@ public class MainActivity extends AppCompatActivity {
                 C.bluetooth.ENABLE_BT_REQUEST
             );
         }
-
         initUI();
+    }
+
+    private void simpleLamp(View l, String lampNumber){
+        if(((TextView) l).getText().toString().equals("ON")){
+            btChannel.sendMessage("LM" + lampNumber + "OF");
+            ((TextView) l).setText("OFF");
+        } else if(((TextView) l).getText().toString().equals("OFF")){
+            btChannel.sendMessage("LM" + lampNumber + "ON");
+            ((TextView) l).setText("ON");
+        }
+    }
+
+    private void levelMinusLamp(View text, String lampNumber){
+        try {
+            int val = Integer.parseInt(((TextView) text).getText().toString());
+            if(val >= 1 && val <=4){
+                btChannel.sendMessage("LM" + lampNumber + "LV" + Integer.toString(val - 1));
+                ((TextView) text).setText(Integer.toString(val - 1));
+            }
+        } catch (NumberFormatException e) {
+            ((TextView) findViewById(R.id.connect_text)).setText(String.format(
+                    "Error while parsing lamp value. Restart the app."
+            ));
+        }
+    }
+
+    private void levelPlusLamp(View text, String lampNumber){
+        try {
+            int val = Integer.parseInt(((TextView) text).getText().toString());
+            if(val >= 0 && val <=3){
+                btChannel.sendMessage("LM" + lampNumber + "LV" + Integer.toString(val + 1));
+                ((TextView) text).setText(Integer.toString(val + 1));
+            }
+        } catch (NumberFormatException e) {
+            ((TextView) findViewById(R.id.connect_text)).setText(String.format(
+                    "Error while parsing lamp value. Restart the app."
+            ));
+        }
     }
 
     private void setDefaultState(){
@@ -54,7 +91,6 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.irr_plus_button).setEnabled(false);
         findViewById(R.id.irr_minus_button).setEnabled(false);
         findViewById(R.id.irrigation_button).setEnabled(false);
-        //setAllText("OFF", "OFF", 0, 0, "OPEN", 1);
     }
 
     private void enableAllButtons(){
@@ -67,7 +103,6 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.irr_plus_button).setEnabled(true);
         findViewById(R.id.irr_minus_button).setEnabled(true);
         findViewById(R.id.irrigation_button).setEnabled(true);
-        //setAllText("OFF", "OFF", 0, 0, "OPEN", 1);
     }
 
     private void setAllText(String l1on, String l2on, int l3level, int l4level, String irron, int irrlevel){
@@ -100,110 +135,38 @@ public class MainActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.manual_button).setOnClickListener(l -> {
-            if (ManualControl){
+            if (manualControl){
                 btChannel.sendMessage("AUTOREQ");
                 ((TextView) l).setText("Require Manual Control");
-                ManualControl = false;
-                //set auto state
+                manualControl = false;
                 setDefaultState();
             } else {
                 btChannel.sendMessage("MANUALREQ");
                 ((TextView) l).setText("Set Auto Control");
-                ManualControl = true;
-                //set manual state
-                enableAllButtons();
+                manualControl = true;
             }
         });
 
-        findViewById(R.id.lamp1_button).setOnClickListener(l -> {
-            if(((TextView) l).getText().toString().equals("ON")){
-                btChannel.sendMessage("LM1OF");
-                ((TextView) l).setText("OFF");
-            } else if(((TextView) l).getText().toString().equals("OFF")){
-                btChannel.sendMessage("LM1ON");
-                ((TextView) l).setText("ON");
-            }
-        });
-
-        findViewById(R.id.lamp2_button).setOnClickListener(l -> {
-            if(((TextView) l).getText().toString().equals("ON")){
-                btChannel.sendMessage("LM2OF");
-                ((TextView) l).setText("OFF");
-            } else if(((TextView) l).getText().toString().equals("OFF")) {
-                btChannel.sendMessage("LM2ON");
-                ((TextView) l).setText("ON");
-            }
-        });
-
-        findViewById(R.id.lamp3_minus_button).setOnClickListener(l -> {
-            try {
-                int val = Integer.parseInt(((TextView) findViewById(R.id.lamp3_text)).getText().toString());
-                if(val >= 1 && val <=4){
-                    btChannel.sendMessage("LM3LV" + Integer.toString(val - 1));
-                    ((TextView) findViewById(R.id.lamp3_text)).setText(Integer.toString(val - 1));
-                }
-            } catch (NumberFormatException e) {
-                //TODO
-            }
-        });
-
-        findViewById(R.id.lamp3_plus_button).setOnClickListener(l -> {
-            try {
-                int val = Integer.parseInt(((TextView) findViewById(R.id.lamp3_text)).getText().toString());
-                if(val >= 0 && val <=3){
-                    btChannel.sendMessage("LM3LV" + Integer.toString(val + 1));
-                    ((TextView) findViewById(R.id.lamp3_text)).setText(Integer.toString(val + 1));
-                }
-            } catch (NumberFormatException e) {
-                //TODO
-            }
-        });
-
-        findViewById(R.id.lamp4_minus_button).setOnClickListener(l -> {
-            try {
-                int val = Integer.parseInt(((TextView) findViewById(R.id.lamp4_text)).getText().toString());
-                if(val >= 1 && val <=4){
-                    btChannel.sendMessage("LM4LV" + Integer.toString(val - 1));
-                    ((TextView) findViewById(R.id.lamp4_text)).setText(Integer.toString(val - 1));
-                }
-            } catch (NumberFormatException e) {
-                //TODO
-            }
-        });
-
-        findViewById(R.id.lamp4_plus_button).setOnClickListener(l -> {
-            try {
-                int val = Integer.parseInt(((TextView) findViewById(R.id.lamp4_text)).getText().toString());
-                if(val >= 0 && val <=3){
-                    btChannel.sendMessage("LM4LV" + Integer.toString(val + 1));
-                    ((TextView) findViewById(R.id.lamp4_text)).setText(Integer.toString(val + 1));
-                }
-            } catch (NumberFormatException e) {
-                //TODO
-            }
-        });
+        findViewById(R.id.lamp1_button).setOnClickListener(l -> simpleLamp(l, "1"));
+        findViewById(R.id.lamp2_button).setOnClickListener(l -> simpleLamp(l, "2"));
+        findViewById(R.id.lamp3_minus_button).setOnClickListener(l -> levelMinusLamp(findViewById(R.id.lamp3_text), "3"));
+        findViewById(R.id.lamp4_minus_button).setOnClickListener(l -> levelMinusLamp(findViewById(R.id.lamp4_text), "4"));
+        findViewById(R.id.lamp3_plus_button).setOnClickListener(l -> levelPlusLamp(findViewById(R.id.lamp3_text), "3"));
+        findViewById(R.id.lamp4_plus_button).setOnClickListener(l -> levelPlusLamp(findViewById(R.id.lamp4_text), "4"));
 
         findViewById(R.id.irr_plus_button).setOnClickListener(l -> {
-            try {
-                int val = Integer.parseInt(((TextView) findViewById(R.id.irr_text)).getText().toString());
-                if(val >= 1 && val <=2){
-                    btChannel.sendMessage("LVLIRR" + irrlevels[val]);
-                    ((TextView) findViewById(R.id.irr_text)).setText(Integer.toString(val + 1));
-                }
-            } catch (NumberFormatException e) {
-                //TODO
+            int val = Integer.parseInt(((TextView) findViewById(R.id.irr_text)).getText().toString());
+            if(val >= 1 && val <=2){
+                btChannel.sendMessage("LVLIRR" + irrlevels[val]);
+                ((TextView) findViewById(R.id.irr_text)).setText(Integer.toString(val + 1));
             }
         });
 
         findViewById(R.id.irr_minus_button).setOnClickListener(l -> {
-            try {
-                int val = Integer.parseInt(((TextView) findViewById(R.id.irr_text)).getText().toString());
-                if(val >= 2 && val <=3){
-                    btChannel.sendMessage("LVLIRR" + irrlevels[val - 2]);
-                    ((TextView) findViewById(R.id.irr_text)).setText(Integer.toString(val - 1));
-                }
-            } catch (NumberFormatException e) {
-                //TODO
+            int val = Integer.parseInt(((TextView) findViewById(R.id.irr_text)).getText().toString());
+            if(val >= 2 && val <=3){
+                btChannel.sendMessage("LVLIRR" + irrlevels[val - 2]);
+                ((TextView) findViewById(R.id.irr_text)).setText(Integer.toString(val - 1));
             }
         });
 
@@ -218,7 +181,7 @@ public class MainActivity extends AppCompatActivity {
         });
         findViewById(R.id.alarm_button).setOnClickListener(l -> {
             btChannel.sendMessage("DISABLEALARM");
-            ManualControl = true;
+            manualControl = true;
             enableAllButtons();
             l.setVisibility(View.INVISIBLE);
         });
@@ -248,7 +211,6 @@ public class MainActivity extends AppCompatActivity {
                 .getPairedDeviceByName(C.bluetooth.BT_DEVICE_ACTING_AS_SERVER_NAME);
 
         final UUID uuid = BluetoothUtils.getEmbeddedDeviceDefaultUuid();
-//        final UUID uuid = BluetoothUtils.generateUuidFromString(C.bluetooth.BT_SERVER_UUID);
 
         new ConnectToBluetoothServerTask(serverDevice, uuid, new ConnectionTask.EventListener() {
             @Override
@@ -262,13 +224,17 @@ public class MainActivity extends AppCompatActivity {
                 findViewById(R.id.manual_button).setEnabled(true);
                 btChannel = channel;
                 btChannel.registerListener(new RealBluetoothChannel.Listener() {
+
                     @Override
                     public void onMessageReceived(String receivedMessage) {
-                        if (receivedMessage.substring(0,3).equals("ALL")){
+                        if (!receivedMessage.isEmpty() && receivedMessage.substring(0,3).equals("ALL")){
                             String[] elems = receivedMessage.substring(4).split(";");
-                            if(elems[6].equals("ALARM")){
+                            if(elems.length >= 6 && elems[6].equals("ALARM")){
                                 setDefaultState();
                                 findViewById(R.id.alarm_button).setVisibility(View.VISIBLE);
+                            } else if(elems.length >= 6 && elems[6].equals("MANUAL")){
+                                enableAllButtons();
+                                manualControl = true;
                             }
                             try{
                                 setAllText(elems[0], elems[1], Integer.parseInt(elems[2]),Integer.parseInt(elems[3]),
@@ -291,6 +257,9 @@ public class MainActivity extends AppCompatActivity {
                     C.bluetooth.BT_DEVICE_ACTING_AS_SERVER_NAME
                 ));
                 setDefaultState();
+                findViewById(R.id.alarm_button).setVisibility(View.INVISIBLE);
+                findViewById(R.id.connect_button).setEnabled(true);
+                findViewById(R.id.manual_button).setEnabled(false);
             }
         }).execute();
     }

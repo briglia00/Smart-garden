@@ -26,12 +26,14 @@ public class GardenService extends Thread {
 		WAITING, RUNNING, STOPPING
 	}
 	
-	private String MODE;
+	private final int IRR_RUNNING_TIME = 10000;
+	private final int IRR_WAITING_TIME = 30000;
 	private static final String serverMQTT = "tcp://broker.mqttdashboard.com:1883";
 	public final String TOPIC_TEMPERATURE = "garden/temperature";
 	public final String TOPIC_BRIGHTNESS = "garden/light";
 	public final String TOPIC_ALARM = "garden/alarm";
 	
+	private String MODE;
 	private String brightness;
 	private String temperature;
 	private IMqttClient publisher;
@@ -39,7 +41,8 @@ public class GardenService extends Thread {
 	private final DashboardService ds;
 	private IrrigationStatus irrstat;
 	private int irrspeed;
-	private static final List<String> IrrigationLevels = Collections.unmodifiableList(Arrays.asList("L", "M", "H"));
+	private static final List<String> IrrigationLevels = 
+			Collections.unmodifiableList(Arrays.asList("L", "M", "H"));
 	private static final List<String> IrrigationLevelNames = 
 			Collections.unmodifiableList(Arrays.asList("Low", "Medium", "High"));
 	private final Map<String, String> serialToDash = Map.ofEntries(
@@ -47,7 +50,7 @@ public class GardenService extends Thread {
 			  new AbstractMap.SimpleEntry<String, String>("LM1OF", "LM1;OFF"),
 			  new AbstractMap.SimpleEntry<String, String>("LM2ON", "LM2;ON"),
 			  new AbstractMap.SimpleEntry<String, String>("LM2OF", "LM2;OFF"),
-			  new AbstractMap.SimpleEntry<String, String>("STPIRR", "Irrigation System Stopped"),
+			  new AbstractMap.SimpleEntry<String, String>("STPIRR", "IRR;Irrigation System Stopped"),
 			  new AbstractMap.SimpleEntry<String, String>("LM3LV0", "LM3;OFF"),
 			  new AbstractMap.SimpleEntry<String, String>("LM3LV1", "LM3;Level of Intensity 1 of 4"),
 			  new AbstractMap.SimpleEntry<String, String>("LM3LV2", "LM3;Level of Intensity 2 of 4"),
@@ -88,6 +91,7 @@ public class GardenService extends Thread {
 		this.publisher.connect();
 		
 		this.ds = dashboard;
+		this.ds.start();
 		this.irrstat = IrrigationStatus.WAITING;
 		
 		this.publisher.subscribe(TOPIC_TEMPERATURE);
@@ -96,7 +100,7 @@ public class GardenService extends Thread {
 		mqttmsg.setQos(0);
 		this.publisher.publish(TOPIC_ALARM, mqttmsg);
 		
-		System.out.println("Ready to receive messages.");
+		System.out.println("Ready to receive data.");
 	}
 
 	public void run() {
@@ -109,14 +113,16 @@ public class GardenService extends Thread {
 					} 
 					if(msg.contains("LVLIRR")) {
 						irrspeed = IrrigationLevels.indexOf(msg.substring(6, 7));
+					} else if(serialToDash.containsKey(msg)) {
+						this.ds.sendToDashboard(serialToDash.get(msg));
 					} else if(msg.contains("STRIRR")) {
 						this.ds.sendToDashboard("IRR;Irrigation System Running at level " + 
 					IrrigationLevelNames.get(irrspeed));
-					} else if(serialToDash.containsKey(msg)) {
-						this.ds.sendToDashboard(serialToDash.get(msg));
 					}
 				} catch (InterruptedException e) {
 					System.out.println("Error while receiving data");
+				} catch (IndexOutOfBoundsException e2) {
+					System.out.println("Error while checking irrigation speed");
 				}
 			}
 			if(this.brightness != null && this.temperature != null) {
@@ -149,8 +155,7 @@ public class GardenService extends Thread {
 	}
 	
 	private void doCycle(int temp, int light) throws InterruptedException {
-		temp = 5;
-		System.out.println("temp: " + temp + " - light: " + light);
+		System.out.println("temperature: " + temp + "/5 - light: " + light + "/8");
 		if (light < 5) {
         	this.sendSerialMessage("LM12ON");
         	this.ds.sendToDashboard("LM1;ON");
@@ -169,8 +174,8 @@ public class GardenService extends Thread {
 			this.ds.sendToDashboard("LM4;OFF");
 		}
 		if (temp >= 5) {
-			this.startIrrigation(1);
-			if (this.irrstat == IrrigationStatus.STOPPING) {
+			this.startIrrigation(2);
+			if (this.irrstat.equals(IrrigationStatus.STOPPING)) {
 				this.switchToMode("ALARM");
 			}
 		} else if (temp >= 2) {
@@ -182,8 +187,8 @@ public class GardenService extends Thread {
 	}
 	
 	private void startIrrigation(int irrlvl) throws InterruptedException {
-		if (this.irrstat == IrrigationStatus.WAITING) {
-			Timer timer = new Timer(10000, new ActionListener() {
+		if (this.irrstat.equals(IrrigationStatus.WAITING)) {
+			Timer timer = new Timer(IRR_RUNNING_TIME, new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					try {
@@ -205,7 +210,7 @@ public class GardenService extends Thread {
 	
 	private void stopIrrigation() throws InterruptedException {
 		if (this.irrstat == IrrigationStatus.RUNNING) {
-			Timer timer = new Timer(20000, new ActionListener() {
+			Timer timer = new Timer(IRR_WAITING_TIME, new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					irrstat = IrrigationStatus.WAITING;
@@ -221,13 +226,13 @@ public class GardenService extends Thread {
 	
 	private void switchToMode(String newmode) throws InterruptedException {
 		try {
-			System.out.println(newmode);
+			System.out.println("Switching to mode " + newmode);
 			if(newmode.contains("ALARM")) {
 				MqttMessage mqttmsg = new MqttMessage("0".getBytes());
 				mqttmsg.setQos(0);
 				this.publisher.publish(TOPIC_ALARM, mqttmsg);
 				this.sendSerialMessage("SETALM");
-			} else if(this.MODE.equals("ALARM") && !newmode.contains("ALARM")) {
+			} else if(this.MODE.equals("ALARM") && !newmode.equals("ALARM")) {
 				MqttMessage mqttmsg = new MqttMessage("1".getBytes());
 				mqttmsg.setQos(0);
 				this.publisher.publish(TOPIC_ALARM, mqttmsg);
@@ -245,12 +250,13 @@ public class GardenService extends Thread {
     	SerialCommChannel channel = new SerialCommChannel("/dev/ttyACM1",9600);
     	DashboardService dashboard = new DashboardService(8001);
     	GardenService collector = new GardenService(channel, dashboard);
+    	collector.start();
     	Runtime.getRuntime().addShutdownHook(new Thread(){
 			@Override
 			public void run() {
 				System.out.println("Performing shutdown");
+				channel.close();
 			}
 		});
-    	collector.start();
     }
 }
