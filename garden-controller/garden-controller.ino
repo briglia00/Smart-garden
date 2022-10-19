@@ -30,7 +30,7 @@ void setup() {
   MsgServiceBT* bt = new MsgServiceBT(RXPIN, TXPIN, BTSTATUS_PIN);
   IrrigationManager* irrmanager = new IrrigationManager(mstate, SERVO_PIN);
   MsgServiceClass* msgservice = new MsgServiceClass();
-  Task* mmanager = new MachineManager(mstate, lamp1, lamp2, lamp3, lamp4, irrmanager, msgservice, bt);
+  MachineManager* mmanager = new MachineManager(mstate, lamp1, lamp2, lamp3, lamp4, irrmanager, msgservice, bt);
   mmanager->init(80);
   irrmanager->init(70);
   sched.addTask(mmanager);

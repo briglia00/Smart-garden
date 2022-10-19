@@ -3,12 +3,10 @@
 
 PhotoResistor::PhotoResistor(int pin){
   this->pin = pin;
+  pinMode(this->pin, INPUT);
 } 
-  
-float PhotoResistor::LightDetected(){
-  //TODO
-  //restituisco la quantità di luce in scala da 1 a 8
-  //float temp = ((analogRead(pin) * 0.00488) - 0.5) / 0.01;
-  int temp = analogRead(this->pin);
-  return temp;
+
+int PhotoResistor::lightDetected(){
+  int light = analogRead(this->pin);
+  return map(light, 0, 4095, 1, 8);
 }

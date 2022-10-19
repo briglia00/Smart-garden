@@ -3,7 +3,7 @@
 
 
 enum brightnesslevel {
-  level0=0, level1=30, level2=108, level3=162, level4=254
+  level0=0, level1=20, level2=60, level3=128, level4=254
 };
 
 class VariableLed {

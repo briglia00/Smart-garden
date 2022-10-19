@@ -93,7 +93,6 @@ void MachineManager::tick(){
       {
         if(!this->btmsg->isConnected()){
           this->msgservice->sendMsg("MODEAUTO");
-          //onBtConnect();
           noInterrupts();
           this->mstate->setStatus(AUTO);
           interrupts();

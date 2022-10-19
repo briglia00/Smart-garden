@@ -1,28 +1,30 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <DHT.h>
-
+#include "PhotoResistor.h"
+#include "Led.h"
 
 #define MSG_BUFFER_SIZE  50
+#define TIME_SEND 10000
 #define DHTPIN 4
 #define LEDPIN 5
-#define TEMPPIN 35
+#define LIGHTPIN 35
 #define DHTTYPE DHT11
 
 /* wifi network info */
 const char* ssid = "TIM-25873012";
 const char* password = "O204O4M2YEUQzQiHLjHLsj6D";
-const int port = 1883;
 
-/* MQTT server address */
+/* MQTT info */
 const char* mqtt_server = "broker.mqttdashboard.com";
-
-/* MQTT client management */
 WiFiClient espClient;
 PubSubClient client(espClient);
+const int port = 1883;
 
 /* DHT Sensor*/
 DHT dht(DHTPIN, DHTTYPE);
+Led* led = new Led(LEDPIN);
+PhotoResistor* phr = new PhotoResistor(LIGHTPIN);
 
 unsigned long lastMsgTime = 0;
 char msg[MSG_BUFFER_SIZE];
@@ -57,9 +59,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
       received = received + (char)payload[i];
     }
     if (received == "0"){
-      digitalWrite(LEDPIN, LOW);
+      led->setOff();
     } else if (received == "1"){
-      digitalWrite(LEDPIN, HIGH);
+      led->setOn();
     }
   }  
 }
@@ -77,9 +79,9 @@ void reconnect() {
       client.subscribe("garden/temperature");
       client.subscribe("garden/light");
       client.subscribe("garden/alarm");
-      digitalWrite(LEDPIN, HIGH);
+      led->setOn();
     } else {
-      digitalWrite(LEDPIN, LOW);
+      led->setOff();
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(", trying again in 5 seconds");
@@ -95,7 +97,6 @@ void setup() {
   client.setServer(mqtt_server, port);
   client.setCallback(callback);
   dht.begin();
-  pinMode(LEDPIN, OUTPUT);
 }
 
 void loop() {
@@ -106,20 +107,18 @@ void loop() {
   client.loop();
 
   unsigned long now = millis();
-  if (now - lastMsgTime > 10000) {
+  if (now - lastMsgTime > TIME_SEND) {
     lastMsgTime = now;
     value++;
 
     float temp = dht.readTemperature();
     if(!isnan(temp) && temp < 50 && temp > 0){
       int temperature = round(dht.readTemperature());
-      snprintf (msg, MSG_BUFFER_SIZE, "%ld", temperature);
+      snprintf (msg, MSG_BUFFER_SIZE, "%i", temperature);
       client.publish("garden/temperature", msg);  
     }
 
-    int light = analogRead(TEMPPIN);
-
-    snprintf (msg, MSG_BUFFER_SIZE, "%ld", map(light, 0, 4095, 1, 8));
+    snprintf (msg, MSG_BUFFER_SIZE, "%i", phr->lightDetected());
     
     client.publish("garden/light", msg);
   }
