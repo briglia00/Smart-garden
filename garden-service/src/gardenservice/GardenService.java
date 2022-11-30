@@ -96,6 +96,7 @@ public class GardenService extends Thread {
 		
 		this.publisher.subscribe(TOPIC_TEMPERATURE);
 		this.publisher.subscribe(TOPIC_BRIGHTNESS);
+		this.publisher.subscribe("garden/debug");
 		MqttMessage mqttmsg = new MqttMessage("1".getBytes());
 		mqttmsg.setQos(0);
 		this.publisher.publish(TOPIC_ALARM, mqttmsg);
@@ -183,7 +184,6 @@ public class GardenService extends Thread {
 		} else if (light < 2) {
 			this.startIrrigation(1);
 		}
-		
 	}
 	
 	private void startIrrigation(int irrlvl) throws InterruptedException {
@@ -227,7 +227,7 @@ public class GardenService extends Thread {
 	private void switchToMode(String newmode) throws InterruptedException {
 		try {
 			System.out.println("Switching to mode " + newmode);
-			if(newmode.contains("ALARM")) {
+			if(newmode.equals("ALARM")) {
 				MqttMessage mqttmsg = new MqttMessage("0".getBytes());
 				mqttmsg.setQos(0);
 				this.publisher.publish(TOPIC_ALARM, mqttmsg);
@@ -247,7 +247,7 @@ public class GardenService extends Thread {
 	}
 	
 	public static void main(String[] args) throws Exception {
-    	SerialCommChannel channel = new SerialCommChannel("/dev/ttyACM1",9600);
+    	SerialCommChannel channel = new SerialCommChannel("/dev/ttyACM0",9600);
     	DashboardService dashboard = new DashboardService(8001);
     	GardenService collector = new GardenService(channel, dashboard);
     	collector.start();

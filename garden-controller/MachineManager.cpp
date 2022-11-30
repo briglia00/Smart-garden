@@ -55,10 +55,10 @@ void MachineManager::ManageMessages(Msg* msg){
     if (templevel >= 0 && templevel <= 4){
       this->lamp4->setBrightness(lightLevels[templevel]);
     }
-  } else if (s == "GETSTT"){
-    //this->msgservice->sendMsg(this->mstate->getStatus());
-  } else if (s == "SETALM"){
+  } else if (s.equals("SETALM")){
+    noInterrupts();
     this->mstate->setStatus(ALARM);
+    interrupts();
   }
 
   if (this->machineState == MANUAL){
@@ -146,6 +146,7 @@ void MachineManager::tick(){
       } 
       Msg* msg = this->btmsg->receiveMsg();
       if(msg->getContent().equals("MANUALREQ")) {
+        this->machineState = this->mstate->getStatus();
         onBtConnect();
       } else if(msg->getContent().equals("DISABLEALARM")) {
         this->msgservice->sendMsg("MODEMANUAL");

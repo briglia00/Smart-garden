@@ -1,3 +1,3 @@
 # Smart-garden
-Link al report dettagliato: https://www.overleaf.com/project/634d19125cbb0e485a99412a
-Link al video dimostrativo: --TODO--
+Link al codice sorgente del report dettagliato: https://www.overleaf.com/read/fzrxfffrkywf
+Link al repository su github, completo di video dimostrativi: https://github.com/briglia00/Smart-garden
